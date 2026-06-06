@@ -1151,12 +1151,13 @@ function applySort(query){
 
 async function fetchPollsWithCategories(query){
   const {data,error,count}=await query;
+  console.log('FETCH polls data:', JSON.stringify(data), 'error:', JSON.stringify(error));
   if(error){console.error('Poll fetch error:',JSON.stringify(error));return{polls:[],count:0};}
   const polls=data||[];
   if(!polls.length) return{polls:[],count:count||0};
-  // Attach categories
   const ids=polls.map(p=>p.id);
-  const {data:pcRows}=await sb.from('poll_categories').select('poll_id,categories(name)').in('poll_id',ids);
+  const {data:pcRows,error:pcErr}=await sb.from('poll_categories').select('poll_id,categories(name)').in('poll_id',ids);
+  console.log('FETCH categories:', JSON.stringify(pcRows), 'error:', JSON.stringify(pcErr));
   const catMap={};
   (pcRows||[]).forEach(r=>{
     if(!catMap[r.poll_id]) catMap[r.poll_id]=[];
