@@ -67,7 +67,7 @@ input,textarea,select{font-family:var(--font-body)}
 img{max-width:100%}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
 
-/* ---- SCROLLBAR ----- */
+/* ---- SCROLLBAR ---- */
 ::-webkit-scrollbar{width:6px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:3px}
@@ -878,15 +878,24 @@ select.form-input{cursor:pointer}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ============================================================
+//  SUPABASE CLIENT
+// ============================================================
+const SUPABASE_URL = 'https://ozvkgbftxxknyijstrvl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_SCT5nGVFVRzlhVT_jzWcBA_CIW2hjd-';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 // ============================================================
 //  STATE
 // ============================================================
 const STATE = {
-  currentUser: null,       // null = guest
+  currentUser: null,
   currentPage: 'home',
   prevPage: 'browse',
   currentPollId: null,
+  currentPollData: null,
   createFormat: 'choice',
   createChoices: ['','',''],
   createCategories: [],
@@ -895,85 +904,32 @@ const STATE = {
   browseSearchText: '',
   browseResultPage: 1,
   recentOffset: 0,
+  recentTotal: 0,
   myPollsVisible: false,
   editingPollId: null,
-  settings: {
-    darkMode: false,
-    showAnonPolls: true,
-    hideProfile: false,
-  }
+  allCategories: [],
+  allTitles: [],
+  settings: { darkMode:false, showAnonPolls:true, hideProfile:false }
 };
 
 // ============================================================
-//  SAMPLE DATA  (replace with Supabase calls later)
+//  SAMPLE DATA (titles only — polls come from DB)
 // ============================================================
-const ALL_CATEGORIES = [
-  'Life','Food','Music','Culture','Sports','Tech','Science',
-  'Personal','Fun','Politics','Gaming','Movies','Books','Travel',
-  'Fashion','Health','Pets','Nature','Education','Random'
-];
+const SAMPLE_POLLS = []; // kept for compatibility, unused
 
-const SAMPLE_POLLS = [];
-
-const TITLES_SHOP = [
-  {id:'t1',name:'New Poller',cost:0,tier:'c',desc:'Just getting started',emoji:'🌱'},
-  {id:'t2',name:'Curious Mind',cost:10,tier:'c',desc:'Asked a few questions',emoji:'🤔'},
-  {id:'t3',name:'Poll Enthusiast',cost:25,tier:'b',desc:'A regular contributor',emoji:'📋'},
-  {id:'t4',name:'Poll Goblin',cost:40,tier:'b',desc:'Unstoppable. Unhinged.',emoji:'👺'},
-  {id:'t5',name:'Star Collector',cost:60,tier:'b',desc:'Amassed a stellar fortune',emoji:'⭐'},
-  {id:'t6',name:'Insight Oracle',cost:80,tier:'a',desc:'Sees patterns others miss',emoji:'🔮'},
-  {id:'t7',name:'Data Wizard',cost:100,tier:'a',desc:'Turns answers into wisdom',emoji:'🧙'},
-  {id:'t8',name:'The Inquisitor',cost:150,tier:'a',desc:'No question left unasked',emoji:'🕵️'},
-  {id:'t9',name:'Grand Pollster',cost:200,tier:'s',desc:'Legendary. Iconic. Unstoppable.',emoji:'👑'},
-  {id:'t10',name:'Chaos Agent',cost:50,tier:'b',desc:'Asks the unaskable',emoji:'🌪️'},
-  {id:'t11',name:'Silent Observer',cost:30,tier:'c',desc:'Watches. Never creates.',emoji:'👁️'},
-  {id:'t12',name:'Contrarian',cost:45,tier:'b',desc:'Always picks the other option',emoji:'😈'},
-];
-
-const SAMPLE_COMMENTS = [];
-
-const SAMPLE_SHOUTOUTS = [];
-
-// Poll fill state (localStorage key: pollster_fills)
-function getFilledPolls(){
-  try{return JSON.parse(localStorage.getItem('pollster_fills')||'{}')}catch{return{}}
-}
-function markPollFilled(id,answer){
-  const f=getFilledPolls();f[id]=answer;
-  try{localStorage.setItem('pollster_fills',JSON.stringify(f))}catch{}
-}
+// ============================================================
+//  LOCAL STORAGE HELPERS
+// ============================================================
+function getFilledPolls(){try{return JSON.parse(localStorage.getItem('pollster_fills')||'{}')}catch{return{}}}
+function markPollFilled(id,answer){const f=getFilledPolls();f[id]=answer;try{localStorage.setItem('pollster_fills',JSON.stringify(f))}catch{}}
 function hasFilled(id){return getFilledPolls()[id]!==undefined}
-
-// Guest poll count (localStorage)
 function getGuestPollCount(){
-  try{
-    const d=JSON.parse(localStorage.getItem('pollster_guest_polls')||'{"date":"","count":0}');
-    const today=new Date().toDateString();
-    if(d.date!==today) return 0;
-    return d.count||0;
-  }catch{return 0}
+  try{const d=JSON.parse(localStorage.getItem('pollster_guest_polls')||'{"date":"","count":0}');const today=new Date().toDateString();if(d.date!==today)return 0;return d.count||0;}catch{return 0}
 }
-function incGuestPollCount(){
-  const today=new Date().toDateString();
-  const count=getGuestPollCount()+1;
-  try{localStorage.setItem('pollster_guest_polls',JSON.stringify({date:today,count}))}catch{}
-}
-
-// Settings persistence
-function loadSettings(){
-  try{
-    const s=JSON.parse(localStorage.getItem('pollster_settings')||'{}');
-    if(s.darkMode!==undefined) STATE.settings.darkMode=s.darkMode;
-    if(s.showAnonPolls!==undefined) STATE.settings.showAnonPolls=s.showAnonPolls;
-    if(s.hideProfile!==undefined) STATE.settings.hideProfile=s.hideProfile;
-  }catch{}
-}
-function saveSettings(){
-  try{localStorage.setItem('pollster_settings',JSON.stringify(STATE.settings))}catch{}
-}
-function saveSetting(key,val){
-  STATE.settings[key]=val;saveSettings();
-}
+function incGuestPollCount(){const today=new Date().toDateString();const count=getGuestPollCount()+1;try{localStorage.setItem('pollster_guest_polls',JSON.stringify({date:today,count}))}catch{}}
+function loadSettings(){try{const s=JSON.parse(localStorage.getItem('pollster_settings')||'{}');if(s.darkMode!==undefined)STATE.settings.darkMode=s.darkMode;if(s.showAnonPolls!==undefined)STATE.settings.showAnonPolls=s.showAnonPolls;if(s.hideProfile!==undefined)STATE.settings.hideProfile=s.hideProfile;}catch{}}
+function saveSettings(){try{localStorage.setItem('pollster_settings',JSON.stringify(STATE.settings))}catch{}}
+function saveSetting(key,val){STATE.settings[key]=val;saveSettings();}
 
 // ============================================================
 //  NAVIGATION
@@ -985,9 +941,7 @@ function showPage(name){
   if(el) el.classList.add('active');
   STATE.prevPage=STATE.currentPage;
   STATE.currentPage=name;
-  document.querySelectorAll('.nav-link[data-page]').forEach(l=>{
-    l.classList.toggle('active',l.dataset.page===name);
-  });
+  document.querySelectorAll('.nav-link[data-page]').forEach(l=>{l.classList.toggle('active',l.dataset.page===name);});
   window.scrollTo({top:0,behavior:'smooth'});
   if(name==='browse') initBrowse();
   if(name==='profile') renderProfile(STATE.currentUser);
@@ -995,56 +949,76 @@ function showPage(name){
   if(name==='community') initCommunity();
   if(name==='create') initCreate();
 }
-
-function goBackToBrowse(){
-  showPage('browse');
-}
+function goBackToBrowse(){showPage('browse');}
 
 // ============================================================
-//  AUTH (stub — wire to Supabase)
+//  AUTH
 // ============================================================
-function openAuthModal(mode){
-  document.getElementById('auth-modal').classList.add('show');
-  switchAuthMode(mode||'login');
-}
-function closeAuthModal(){
-  document.getElementById('auth-modal').classList.remove('show');
-}
-function closeAuthIfOutside(e){
-  if(e.target.id==='auth-modal') closeAuthModal();
-}
+function openAuthModal(mode){document.getElementById('auth-modal').classList.add('show');switchAuthMode(mode||'login');}
+function closeAuthModal(){document.getElementById('auth-modal').classList.remove('show');}
+function closeAuthIfOutside(e){if(e.target.id==='auth-modal')closeAuthModal();}
 function switchAuthMode(mode){
   document.getElementById('auth-modal-login').style.display=mode==='login'?'':'none';
   document.getElementById('auth-modal-signup').style.display=mode==='signup'?'':'none';
 }
 
-function doLogin(){
-  // STUB — replace with Supabase auth
+async function doLogin(){
   const username=document.getElementById('login-username').value.trim();
-  if(!username){alert('Please enter a username.');return;}
-  simulateLogin({username:username||'User',uid:'U100001',stars:47,starsAllTime:120,responded:32,created:8,activeTitle:'t5',unlockedTitles:['t1','t2','t3','t5']});
+  const pw=document.getElementById('login-password').value;
+  if(!username||!pw){alert('Please fill in all fields.');return;}
+  // Look up email from username via profiles
+  const {data:profile,error:pe}=await sb.from('profiles').select('id').eq('username',username).single();
+  if(pe||!profile){alert('Username not found.');return;}
+  // Supabase auth requires email — we store email as uid@pollster.app
+  const fakeEmail=`${profile.id}@pollster.internal`;
+  const {data,error}=await sb.auth.signInWithPassword({email:fakeEmail,password:pw});
+  if(error){alert('Incorrect password.');return;}
   closeAuthModal();
 }
-function doSignup(){
-  // STUB — replace with Supabase auth
+
+async function doSignup(){
   const username=document.getElementById('signup-username').value.trim();
   const pw=document.getElementById('signup-password').value;
   const pw2=document.getElementById('signup-password2').value;
   if(!username){alert('Please enter a username.');return;}
   if(pw!==pw2){alert('Passwords do not match.');return;}
   if(pw.length<6){alert('Password must be at least 6 characters.');return;}
-  simulateLogin({username,uid:'U100001',stars:0,starsAllTime:0,responded:0,created:0,activeTitle:'t1',unlockedTitles:['t1']});
+  // Check username not taken
+  const {data:existing}=await sb.from('profiles').select('id').eq('username',username).single();
+  if(existing){alert('Username already taken.');return;}
+  // Sign up — we use a placeholder email based on username
+  const tempEmail=`${username.toLowerCase().replace(/[^a-z0-9]/g,'_')}@pollster.internal`;
+  const {data,error}=await sb.auth.signUp({email:tempEmail,password:pw,options:{data:{username}}});
+  if(error){alert('Signup failed: '+error.message);return;}
   closeAuthModal();
 }
-function simulateLogin(user){
-  STATE.currentUser=user;
-  updateNavForAuth();
-}
-function signOut(){
+
+async function signOut(){
+  await sb.auth.signOut();
   STATE.currentUser=null;
   updateNavForAuth();
   showPage('home');
 }
+
+async function loadUserProfile(userId){
+  const {data,error}=await sb.from('profiles').select('*').eq('id',userId).single();
+  if(error||!data) return null;
+  const {data:titles}=await sb.from('user_titles').select('title_id').eq('user_id',userId);
+  return {
+    id: data.id,
+    username: data.username,
+    uid: data.uid,
+    stars: data.stars,
+    starsAllTime: data.stars_all_time,
+    responded: data.polls_responded,
+    created: data.polls_created,
+    activeTitle: data.active_title,
+    hideProfile: data.hide_profile,
+    showAnonPolls: data.show_anon_polls,
+    unlockedTitles: (titles||[]).map(t=>t.title_id)
+  };
+}
+
 function updateNavForAuth(){
   const loggedIn=!!STATE.currentUser;
   document.getElementById('nav-login-btn').style.display=loggedIn?'none':'';
@@ -1056,22 +1030,52 @@ function updateNavForAuth(){
     document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
     document.getElementById('nav-avatar').textContent=STATE.currentUser.username.charAt(0).toUpperCase();
   }
-  // show anon toggle only when signed in
   document.getElementById('anon-polls-toggle-wrap').style.display=loggedIn?'':'none';
+}
+
+// Listen for auth state changes
+sb.auth.onAuthStateChange(async (event,session)=>{
+  if(session?.user){
+    STATE.currentUser=await loadUserProfile(session.user.id);
+    updateNavForAuth();
+    if(STATE.currentPage==='profile') renderProfile(STATE.currentUser);
+    if(STATE.currentPage==='settings') syncSettingsUI();
+  } else {
+    STATE.currentUser=null;
+    updateNavForAuth();
+  }
+});
+
+// ============================================================
+//  CATEGORIES
+// ============================================================
+async function loadCategories(){
+  const {data}=await sb.from('categories').select('name').order('name');
+  STATE.allCategories=(data||[]).map(c=>c.name);
+  renderCreateCatSuggestions();
+}
+
+// ============================================================
+//  TITLES
+// ============================================================
+async function loadTitles(){
+  const {data}=await sb.from('titles').select('*').order('cost');
+  STATE.allTitles=data||[];
 }
 
 // ============================================================
 //  BROWSE
 // ============================================================
+const SUGGESTED_CATS=['Life','Food','Music','Tech','Sports','Fun','Culture','Personal'];
+
 function initBrowse(){
   renderSuggestedCategories();
   renderRecentPolls(true);
 }
 
-const SUGGESTED_CATS=['Life','Food','Music','Tech','Sports','Fun','Culture','Personal'];
 function renderSuggestedCategories(){
   const wrap=document.getElementById('suggested-categories');
-  if(!wrap)return;
+  if(!wrap) return;
   wrap.innerHTML='';
   SUGGESTED_CATS.forEach(cat=>{
     if(STATE.browseActiveCategories.includes(cat)) return;
@@ -1113,58 +1117,82 @@ function setSort(sort,btn){
   doBrowseSearch();
   renderRecentPolls(true);
 }
-function doBrowseSearch(){
-  const q=document.getElementById('browse-text-search')?.value.trim().toLowerCase()||'';
+
+async function doBrowseSearch(){
+  const q=document.getElementById('browse-text-search')?.value.trim()||'';
   STATE.browseSearchText=q;
   const cats=STATE.browseActiveCategories;
-  if(!q&&!cats.length){
-    document.getElementById('browse-search-results').style.display='none';
-    return;
-  }
-  let results=SAMPLE_POLLS.filter(p=>{
-    const matchQ=!q||p.title.toLowerCase().includes(q);
-    const matchCat=!cats.length||cats.some(c=>p.categories.includes(c));
-    return matchQ&&matchCat;
-  });
-  results=sortPolls(results);
-  const perPage=10, page=1, total=results.length;
-  const pagePolls=results.slice(0,perPage);
+  if(!q&&!cats.length){document.getElementById('browse-search-results').style.display='none';return;}
   document.getElementById('browse-search-results').style.display='';
-  document.getElementById('search-results-label').textContent=`${total} result${total!==1?'s':''}`;
-  renderPollGrid(pagePolls,'search-results-grid');
-  renderPagination(total,perPage,page,'search-pagination');
+  STATE.browseResultPage=1;
+  await doSearchPage(1);
 }
-function searchById(){
+
+async function searchById(){
   const id=document.getElementById('browse-id-search')?.value.trim().toUpperCase();
   if(!id) return;
-  const poll=SAMPLE_POLLS.find(p=>p.id===id);
-  if(poll) openPoll(poll.id);
+  const {data,error}=await sb.from('polls_with_categories').select('*').eq('id',id).single();
+  if(data) openPoll(data.id,data);
   else alert(`No poll found with ID ${id}`);
 }
-function sortPolls(polls){
+
+function applySort(query){
   const s=STATE.browseSortBy;
-  return [...polls].sort((a,b)=>{
-    if(s==='popular') return b.responses-a.responses;
-    if(s==='newest') return new Date(b.created)-new Date(a.created);
-    if(s==='oldest') return new Date(a.created)-new Date(b.created);
-    if(s==='az') return a.title.localeCompare(b.title);
-    if(s==='za') return b.title.localeCompare(a.title);
-    return 0;
-  });
+  if(s==='popular') return query.order('responses',{ascending:false});
+  if(s==='newest')  return query.order('created_at',{ascending:false});
+  if(s==='oldest')  return query.order('created_at',{ascending:true});
+  if(s==='az')      return query.order('title',{ascending:true});
+  if(s==='za')      return query.order('title',{ascending:false});
+  return query;
 }
-function renderRecentPolls(reset){
+
+async function renderRecentPolls(reset){
   if(reset) STATE.recentOffset=0;
-  const sorted=sortPolls(SAMPLE_POLLS);
-  const chunk=sorted.slice(0,STATE.recentOffset+30);
-  renderPollGrid(chunk,'recent-polls-grid');
-  STATE.recentOffset=chunk.length;
+  const grid=document.getElementById('recent-polls-grid');
+  if(reset&&grid) grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⏳</div><div class="empty-title">Loading...</div></div>';
+
+  let query=sb.from('polls_with_categories').select('*');
+  query=applySort(query);
+  // Only show polls that have been featured (30s delay)
+  query=query.not('featured_at','is',null);
+  if(!STATE.settings.showAnonPolls&&STATE.currentUser) query=query.not('author_id','is',null);
+  query=query.range(STATE.recentOffset, STATE.recentOffset+29);
+
+  const {data,error}=await query;
+  const polls=data||[];
+
+  if(reset){
+    renderPollGrid(polls,'recent-polls-grid');
+  } else {
+    polls.forEach(p=>{
+      const card=makePollCard(p);
+      document.getElementById('recent-polls-grid').appendChild(card);
+    });
+  }
+  STATE.recentOffset+=polls.length;
   const loadMore=document.getElementById('recent-load-more');
-  if(loadMore) loadMore.style.display=STATE.recentOffset>=SAMPLE_POLLS.length?'none':'';
+  if(loadMore) loadMore.style.display=polls.length<30?'none':'';
 }
-function loadMoreRecent(){
-  STATE.recentOffset+=30;
-  renderRecentPolls(false);
+
+function loadMoreRecent(){renderRecentPolls(false);}
+
+function makePollCard(poll){
+  const card=document.createElement('div');
+  card.className='poll-card';
+  card.onclick=()=>openPoll(poll.id,poll);
+  const cats=(poll.categories||[]).map(c=>`<span class="category-chip" style="cursor:default;pointer-events:none">${c}</span>`).join('');
+  card.innerHTML=`
+    <span class="poll-card-type ${poll.format==='choice'?'type-choice':'type-answer'}">${poll.format==='choice'?'Multiple choice':'Short answer'}</span>
+    <div class="poll-card-title">${poll.title}</div>
+    <div class="categories-wrap" style="gap:4px">${cats}</div>
+    <div class="poll-card-meta">
+      <span>👤 ${poll.author_name}</span>
+      <span>🗳️ ${(poll.responses||0).toLocaleString()}</span>
+      <span>${formatDate(poll.created_at)}</span>
+    </div>`;
+  return card;
 }
+
 function renderPollGrid(polls,containerId){
   const grid=document.getElementById(containerId);
   if(!grid) return;
@@ -1173,72 +1201,73 @@ function renderPollGrid(polls,containerId){
     return;
   }
   grid.innerHTML='';
-  polls.forEach(poll=>{
-    const card=document.createElement('div');
-    card.className='poll-card';
-    card.onclick=()=>openPoll(poll.id);
-    const cats=poll.categories.map(c=>`<span class="category-chip" style="cursor:default;pointer-events:none">${c}</span>`).join('');
-    card.innerHTML=`
-      <span class="poll-card-type ${poll.type==='choice'?'type-choice':'type-answer'}">${poll.type==='choice'?'Multiple choice':'Short answer'}</span>
-      <div class="poll-card-title">${poll.title}</div>
-      <div class="categories-wrap" style="gap:4px">${cats}</div>
-      <div class="poll-card-meta">
-        <span>👤 ${poll.author}</span>
-        <span>🗳️ ${poll.responses.toLocaleString()}</span>
-        <span>${formatDate(poll.created)}</span>
-      </div>`;
-    grid.appendChild(card);
-  });
+  polls.forEach(p=>grid.appendChild(makePollCard(p)));
 }
+
 function renderPagination(total,perPage,current,containerId){
   const container=document.getElementById(containerId);
   if(!container) return;
   const pages=Math.ceil(total/perPage);
   if(pages<=1){container.innerHTML='';return;}
   let html='';
-  for(let i=1;i<=pages;i++){
-    html+=`<button class="page-btn${i===current?' active':''}" onclick="goToPage(${i})">${i}</button>`;
-  }
+  for(let i=1;i<=pages;i++) html+=`<button class="page-btn${i===current?' active':''}" onclick="goToPage(${i})">${i}</button>`;
   container.innerHTML=html;
 }
-function goToPage(n){/* Implement pagination with real data */}
+function goToPage(n){doSearchPage(n);}
 
 // ============================================================
 //  POLL PAGE
 // ============================================================
-function openPoll(id){
+async function openPoll(id, pollData){
   STATE.prevPage='browse';
   STATE.currentPollId=id;
-  const poll=SAMPLE_POLLS.find(p=>p.id===id)||{id,title:'Poll not found',type:'choice',author:'Unknown',categories:[],responses:0,created:'',choices:[]};
+
+  // Use passed data or fetch fresh
+  let poll=pollData;
+  if(!poll){
+    const {data}=await sb.from('polls_with_categories').select('*').eq('id',id).single();
+    poll=data;
+  }
+  if(!poll){alert('Poll not found.');return;}
+  STATE.currentPollData=poll;
+
+  // Fetch choices if choice poll
+  if(poll.format==='choice'){
+    const {data:choices}=await sb.from('choices').select('*').eq('poll_id',id).order('position');
+    poll.choices=choices||[];
+  }
+
   document.getElementById('poll-page-id').textContent=poll.id;
   document.getElementById('poll-page-title').textContent=poll.title;
-  document.getElementById('poll-page-author').textContent=poll.author;
-  document.getElementById('poll-page-date').textContent=`Created: ${formatDate(poll.created)}`;
-  document.getElementById('poll-page-responses').textContent=poll.responses.toLocaleString();
+  document.getElementById('poll-page-author').textContent=poll.author_name;
+  document.getElementById('poll-page-date').textContent=`Created: ${formatDate(poll.created_at)}`;
+  document.getElementById('poll-page-responses').textContent=(poll.responses||0).toLocaleString();
   const typeEl=document.getElementById('poll-page-type');
-  typeEl.textContent=poll.type==='choice'?'Multiple choice':'Short answer';
-  typeEl.className=`poll-card-type ${poll.type==='choice'?'type-choice':'type-answer'}`;
+  typeEl.textContent=poll.format==='choice'?'Multiple choice':'Short answer';
+  typeEl.className=`poll-card-type ${poll.format==='choice'?'type-choice':'type-answer'}`;
   const catsWrap=document.getElementById('poll-page-cats');
-  catsWrap.innerHTML=poll.categories.map(c=>`<span class="category-chip" style="cursor:default;pointer-events:none">${c}</span>`).join('');
+  catsWrap.innerHTML=(poll.categories||[]).map(c=>`<span class="category-chip" style="cursor:default;pointer-events:none">${c}</span>`).join('');
   renderPollAnswerArea(poll);
-  const isCreator=STATE.currentUser&&STATE.currentUser.uid&&poll.authorId===STATE.currentUser.uid;
+  const isCreator=STATE.currentUser&&poll.author_id===STATE.currentUser.id;
   document.getElementById('poll-creator-controls').style.display=isCreator?'':'none';
   showPage('poll');
 }
+
 function renderPollAnswerArea(poll){
   const area=document.getElementById('poll-answer-area');
   const filled=hasFilled(poll.id);
   const filledAnswer=getFilledPolls()[poll.id];
-  if(poll.type==='choice'){
-    const total=poll.choices.reduce((s,c)=>s+c.votes,0)||1;
+  if(poll.format==='choice'){
+    const choices=poll.choices||[];
+    const total=choices.reduce((s,c)=>s+(c.votes||0),0)||1;
     if(filled){
       area.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
         <p style="font-size:13px;color:var(--text-secondary);margin-bottom:4px">✅ You answered. Here are the results:</p>
-        ${poll.choices.map(c=>{
-          const pct=Math.round(c.votes/total*100);
-          const selected=filledAnswer===c.text;
+        ${choices.map(c=>{
+          const pct=Math.round((c.votes||0)/total*100);
+          const selected=filledAnswer===c.id.toString();
           return `<div class="choice-option${selected?' selected':''}" style="cursor:default">
-            <div class="choice-radio">${selected?'':''}${selected?'<span style="width:6px;height:6px;border-radius:50%;background:#fff;display:block"></span>':''}</div>
+            <div class="choice-radio">${selected?'<span style="width:6px;height:6px;border-radius:50%;background:#fff;display:block"></span>':''}</div>
             <span style="flex:1;font-size:14px">${c.text}</span>
             <div class="choice-bar" style="max-width:120px"><div class="choice-bar-fill" style="width:${pct}%"></div></div>
             <span class="choice-pct">${pct}%</span>
@@ -1248,8 +1277,8 @@ function renderPollAnswerArea(poll){
     } else {
       area.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
         <p style="font-size:14px;color:var(--text-secondary);margin-bottom:4px">Choose one:</p>
-        ${poll.choices.map(c=>`
-          <div class="choice-option" onclick="selectChoice(this,'${poll.id}','${c.text.replace(/'/g,"\\'")}')">
+        ${choices.map(c=>`
+          <div class="choice-option" onclick="selectChoice(this,'${poll.id}',${c.id})">
             <div class="choice-radio"></div>
             <span style="flex:1;font-size:14px">${c.text}</span>
           </div>`).join('')}
@@ -1257,84 +1286,101 @@ function renderPollAnswerArea(poll){
       </div>`;
     }
   } else {
-    const answers=poll.answers||[];
-    const canSeeAnswers=poll.visibleAnswers;
-    if(filled&&canSeeAnswers){
-      area.innerHTML=`<div>
-        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">✅ You answered. Here's what others said:</p>
-        ${answers.map(a=>`<div style="padding:10px 14px;background:var(--bg-secondary);border-radius:var(--radius-md);margin-bottom:8px;font-size:14px">${a}</div>`).join('')}
-        ${answers.length===0?'<p style="color:var(--text-muted);font-size:13px">No answers yet.</p>':''}
-      </div>`;
-    } else if(filled&&!canSeeAnswers){
+    if(filled&&poll.visible_answers){
+      // Fetch answers
+      sb.from('responses').select('answer_text').eq('poll_id',poll.id).then(({data})=>{
+        const answers=(data||[]).map(r=>r.answer_text).filter(Boolean);
+        area.innerHTML=`<div>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">✅ You answered. Here's what others said:</p>
+          ${answers.map(a=>`<div style="padding:10px 14px;background:var(--bg-secondary);border-radius:var(--radius-md);margin-bottom:8px;font-size:14px">${a}</div>`).join('')}
+          ${answers.length===0?'<p style="color:var(--text-muted);font-size:13px">No answers yet.</p>':''}
+        </div>`;
+      });
+      area.innerHTML='<p style="color:var(--text-muted);font-size:13px">Loading answers...</p>';
+    } else if(filled&&!poll.visible_answers){
       area.innerHTML=`<div class="alert alert-info">✅ You submitted your answer. The creator has kept responses private.</div>`;
     } else {
       area.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
         <textarea class="form-input" id="short-answer-input" placeholder="Type your answer here..." maxlength="80"></textarea>
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:12px;color:var(--text-muted)">${poll.responses} answers submitted</span>
+          <span style="font-size:12px;color:var(--text-muted)">${poll.responses||0} answers submitted</span>
           <button class="btn btn-primary btn-sm" onclick="submitShortAnswer('${poll.id}')">Submit</button>
         </div>
       </div>`;
     }
   }
 }
-let selectedChoiceText=null;
-function selectChoice(el,pollId,text){
-  selectedChoiceText=text;
+
+let selectedChoiceId=null;
+function selectChoice(el,pollId,choiceId){
+  selectedChoiceId=choiceId;
   document.querySelectorAll('#poll-answer-area .choice-option').forEach(o=>o.classList.remove('selected'));
   el.classList.add('selected');
   const btn=document.getElementById('submit-choice-btn');
   if(btn) btn.disabled=false;
 }
-function submitChoice(pollId){
-  if(!selectedChoiceText) return;
-  markPollFilled(pollId,selectedChoiceText);
+
+async function submitChoice(pollId){
+  if(!selectedChoiceId) return;
+  const btn=document.getElementById('submit-choice-btn');
+  if(btn){btn.disabled=true;btn.textContent='Submitting...';}
+  const payload={poll_id:pollId,choice_id:selectedChoiceId};
+  if(STATE.currentUser) payload.user_id=STATE.currentUser.id;
+  const {error}=await sb.from('responses').insert(payload);
+  if(error){
+    if(btn){btn.disabled=false;btn.textContent='Submit';}
+    if(error.code==='23505') alert('You already answered this poll!');
+    else alert('Error submitting: '+error.message);
+    return;
+  }
+  markPollFilled(pollId,selectedChoiceId.toString());
   if(STATE.currentUser){
     STATE.currentUser.stars+=1;
     STATE.currentUser.starsAllTime+=1;
-    STATE.currentUser.responded+=1;
     document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
   }
-  const poll=SAMPLE_POLLS.find(p=>p.id===pollId);
-  if(poll){
-    const c=poll.choices.find(c=>c.text===selectedChoiceText);
-    if(c) c.votes++;
-    poll.responses++;
-    renderPollAnswerArea(poll);
-    document.getElementById('poll-page-responses').textContent=poll.responses.toLocaleString();
-  }
-  selectedChoiceText=null;
-}
-function submitShortAnswer(pollId){
-  const input=document.getElementById('short-answer-input');
-  const answer=input?.value.trim();
-  if(!answer) return;
-  markPollFilled(pollId,answer);
-  if(STATE.currentUser){
-    STATE.currentUser.stars+=1;
-    STATE.currentUser.starsAllTime+=1;
-    STATE.currentUser.responded+=1;
-    document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
-  }
-  const poll=SAMPLE_POLLS.find(p=>p.id===pollId);
-  if(poll){
-    poll.responses++;
-    if(!poll.answers) poll.answers=[];
-    poll.answers.push(answer);
-    renderPollAnswerArea(poll);
-    document.getElementById('poll-page-responses').textContent=poll.responses.toLocaleString();
+  selectedChoiceId=null;
+  // Refresh poll data
+  const {data}=await sb.from('polls_with_categories').select('*').eq('id',pollId).single();
+  if(data){
+    const {data:choices}=await sb.from('choices').select('*').eq('poll_id',pollId).order('position');
+    data.choices=choices||[];
+    STATE.currentPollData=data;
+    document.getElementById('poll-page-responses').textContent=(data.responses||0).toLocaleString();
+    renderPollAnswerArea(data);
   }
 }
 
-// Edit/Delete poll
-function openEditPollModal(){
-  const poll=SAMPLE_POLLS.find(p=>p.id===STATE.currentPollId);
+async function submitShortAnswer(pollId){
+  const input=document.getElementById('short-answer-input');
+  const answer=input?.value.trim();
+  if(!answer) return;
+  const payload={poll_id:pollId,answer_text:answer};
+  if(STATE.currentUser) payload.user_id=STATE.currentUser.id;
+  const {error}=await sb.from('responses').insert(payload);
+  if(error){
+    if(error.code==='23505') alert('You already answered this poll!');
+    else alert('Error submitting: '+error.message);
+    return;
+  }
+  markPollFilled(pollId,answer);
+  if(STATE.currentUser){
+    STATE.currentUser.stars+=1;
+    document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
+  }
+  const {data}=await sb.from('polls_with_categories').select('*').eq('id',pollId).single();
+  if(data){STATE.currentPollData=data;document.getElementById('poll-page-responses').textContent=(data.responses||0).toLocaleString();}
+  renderPollAnswerArea(STATE.currentPollData);
+}
+
+// Edit/Delete
+async function openEditPollModal(){
+  const poll=STATE.currentPollData;
   if(!poll) return;
   STATE.editingPollId=poll.id;
   document.getElementById('edit-question').value=poll.title;
-  const hasResponses=poll.responses>0;
-  document.getElementById('edit-preresponse-fields').style.display=hasResponses?'none':'';
-  renderEditCats(poll.categories);
+  document.getElementById('edit-preresponse-fields').style.display=(poll.responses||0)>0?'none':'';
+  renderEditCats(poll.categories||[]);
   document.getElementById('edit-poll-modal').classList.add('show');
 }
 function renderEditCats(cats){
@@ -1351,35 +1397,45 @@ function addEditCat(){
   const input=document.getElementById('edit-cat-input');
   const val=input.value.trim();
   if(!val) return;
-  const poll=SAMPLE_POLLS.find(p=>p.id===STATE.editingPollId);
+  const poll=STATE.currentPollData;
   if(!poll||poll.categories.length>=8) return;
   if(!poll.categories.includes(val)) poll.categories.push(val);
   renderEditCats(poll.categories);
   input.value='';
 }
 function removeEditCat(cat){
-  const poll=SAMPLE_POLLS.find(p=>p.id===STATE.editingPollId);
+  const poll=STATE.currentPollData;
   if(poll) poll.categories=poll.categories.filter(c=>c!==cat);
   renderEditCats(poll.categories);
 }
-function saveEditPoll(){
-  const poll=SAMPLE_POLLS.find(p=>p.id===STATE.editingPollId);
+async function saveEditPoll(){
+  const poll=STATE.currentPollData;
   if(!poll) return;
-  if(poll.responses===0){
+  const updates={};
+  if((poll.responses||0)===0){
     const q=document.getElementById('edit-question').value.trim();
-    if(q) poll.title=q;
+    if(q) updates.title=q;
+  }
+  if(Object.keys(updates).length) await sb.from('polls').update(updates).eq('id',poll.id);
+  // Update categories: delete all, re-insert
+  await sb.from('poll_categories').delete().eq('poll_id',poll.id);
+  const cats=poll.categories||[];
+  if(cats.length){
+    // Get category ids
+    const {data:catRows}=await sb.from('categories').select('id,name').in('name',cats);
+    if(catRows){
+      await sb.from('poll_categories').insert(catRows.map(c=>({poll_id:poll.id,category_id:c.id})));
+    }
   }
   closeEditPollModal();
   openPoll(poll.id);
 }
-function closeEditPollModal(){
-  document.getElementById('edit-poll-modal').classList.remove('show');
-}
-function closeEditIfOutside(e){if(e.target.id==='edit-poll-modal') closeEditPollModal();}
-function deletePoll(){
+function closeEditPollModal(){document.getElementById('edit-poll-modal').classList.remove('show');}
+function closeEditIfOutside(e){if(e.target.id==='edit-poll-modal')closeEditPollModal();}
+
+async function deletePoll(){
   if(!confirm('Delete this poll? This cannot be undone.')) return;
-  const idx=SAMPLE_POLLS.findIndex(p=>p.id===STATE.currentPollId);
-  if(idx>-1) SAMPLE_POLLS.splice(idx,1);
+  await sb.from('polls').delete().eq('id',STATE.currentPollId);
   showPage('browse');
 }
 
@@ -1425,38 +1481,27 @@ function renderChoiceList(){
   document.getElementById('add-choice-btn').style.display=STATE.createChoices.length>=8?'none':'';
 }
 function updateChoice(i,val){STATE.createChoices[i]=val;}
-function addChoice(){
-  if(STATE.createChoices.length>=8) return;
-  STATE.createChoices.push('');
-  renderChoiceList();
-}
-function removeChoice(i){
-  if(STATE.createChoices.length<=3) return;
-  STATE.createChoices.splice(i,1);
-  renderChoiceList();
-}
+function addChoice(){if(STATE.createChoices.length>=8)return;STATE.createChoices.push('');renderChoiceList();}
+function removeChoice(i){if(STATE.createChoices.length<=3)return;STATE.createChoices.splice(i,1);renderChoiceList();}
+
 function renderCreateCatSuggestions(){
   const wrap=document.getElementById('create-cat-suggestions');
   if(!wrap) return;
   wrap.innerHTML='';
-  ALL_CATEGORIES.filter(c=>!STATE.createCategories.includes(c)).slice(0,12).forEach(cat=>{
+  const cats=STATE.allCategories.length?STATE.allCategories:['Life','Food','Music','Tech','Sports','Fun','Culture','Personal','Gaming','Movies'];
+  cats.filter(c=>!STATE.createCategories.includes(c)).slice(0,12).forEach(cat=>{
     const chip=document.createElement('button');
-    chip.className='category-chip';
-    chip.textContent=cat;
+    chip.className='category-chip';chip.textContent=cat;
     chip.onclick=()=>addCreateCat(cat);
     wrap.appendChild(chip);
   });
 }
 function addCreateCat(cat){
   if(STATE.createCategories.includes(cat)||STATE.createCategories.length>=8) return;
-  STATE.createCategories.push(cat);
-  renderSelectedCreateCats();
-  renderCreateCatSuggestions();
+  STATE.createCategories.push(cat);renderSelectedCreateCats();renderCreateCatSuggestions();
 }
 function removeCreateCat(cat){
-  STATE.createCategories=STATE.createCategories.filter(c=>c!==cat);
-  renderSelectedCreateCats();
-  renderCreateCatSuggestions();
+  STATE.createCategories=STATE.createCategories.filter(c=>c!==cat);renderSelectedCreateCats();renderCreateCatSuggestions();
 }
 function renderSelectedCreateCats(){
   const wrap=document.getElementById('create-selected-cats');
@@ -1474,62 +1519,72 @@ function addCategory(){
   const val=input.value.trim();
   if(!val) return;
   addCreateCat(val);
-  if(!ALL_CATEGORIES.includes(val)) ALL_CATEGORIES.push(val);
+  if(!STATE.allCategories.includes(val)) STATE.allCategories.push(val);
   input.value='';
 }
-function submitPoll(){
+
+async function submitPoll(){
   const question=document.getElementById('create-question')?.value.trim();
   if(!question){alert('Please enter a question.');return;}
   if(STATE.createFormat==='choice'){
-    const validChoices=STATE.createChoices.filter(c=>c.trim());
-    if(validChoices.length<3){alert('Please add at least 3 choices.');return;}
+    const valid=STATE.createChoices.filter(c=>c.trim());
+    if(valid.length<3){alert('Please add at least 3 choices.');return;}
   }
   if(!STATE.currentUser){
-    const count=getGuestPollCount();
-    if(count>=3){alert('Guest limit: 3 polls per day. Sign up for unlimited!');return;}
+    if(getGuestPollCount()>=3){alert('Guest limit: 3 polls per day. Sign up for unlimited!');return;}
     incGuestPollCount();
   }
-  const newId='P'+(100000+SAMPLE_POLLS.length+1);
-  const newPoll={
-    id:newId,
+  const btn=document.querySelector('#create-form-wrap .btn-primary');
+  if(btn){btn.disabled=true;btn.textContent='Submitting...';}
+
+  const pollPayload={
     title:question,
-    author:STATE.currentUser?STATE.currentUser.username:'Guest',
-    authorId:STATE.currentUser?STATE.currentUser.uid:null,
-    type:STATE.createFormat,
-    categories:[...STATE.createCategories],
-    responses:0,
-    created:new Date().toISOString().split('T')[0],
+    format:STATE.createFormat,
+    author_id:STATE.currentUser?STATE.currentUser.id:null,
+    author_name:STATE.currentUser?STATE.currentUser.username:'Guest',
+    visible_answers:STATE.createFormat==='answer'?(document.getElementById('answer-visible-toggle')?.checked??true):true,
+    featured_at: new Date(Date.now()+30000).toISOString() // 30s delay
   };
-  if(STATE.createFormat==='choice'){
-    newPoll.choices=STATE.createChoices.filter(c=>c.trim()).map(c=>({text:c,votes:0}));
-  } else {
-    newPoll.visibleAnswers=document.getElementById('answer-visible-toggle')?.checked??true;
-    newPoll.answers=[];
+
+  const {data:pollRow,error:pollErr}=await sb.from('polls').insert(pollPayload).select().single();
+  if(pollErr){
+    if(btn){btn.disabled=false;btn.textContent='Done! 🎉';}
+    alert('Error creating poll: '+pollErr.message);return;
   }
-  SAMPLE_POLLS.unshift(newPoll);
+
+  // Insert choices
+  if(STATE.createFormat==='choice'){
+    const validChoices=STATE.createChoices.filter(c=>c.trim());
+    await sb.from('choices').insert(validChoices.map((text,i)=>({poll_id:pollRow.id,text,position:i})));
+  }
+
+  // Insert categories (ensure they exist first)
+  if(STATE.createCategories.length){
+    for(const name of STATE.createCategories){
+      await sb.from('categories').upsert({name},{onConflict:'name'});
+    }
+    const {data:catRows}=await sb.from('categories').select('id,name').in('name',STATE.createCategories);
+    if(catRows) await sb.from('poll_categories').insert(catRows.map(c=>({poll_id:pollRow.id,category_id:c.id})));
+  }
+
   if(STATE.currentUser){
     STATE.currentUser.stars+=2;
-    STATE.currentUser.starsAllTime+=2;
-    STATE.currentUser.created+=1;
     document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
   }
-  document.getElementById('new-poll-id').textContent=newId;
+  STATE.currentPollId=pollRow.id;
+  document.getElementById('new-poll-id').textContent=pollRow.id;
   document.getElementById('create-form-wrap').style.display='none';
   document.getElementById('create-success').style.display='';
-  STATE.currentPollId=newId;
-  // 30s delay before showing in recent feed (handled by setting created to future for demo)
 }
 function resetCreateForm(){initCreate();}
 function goToNewPoll(){openPoll(STATE.currentPollId);}
-function openSamplePoll(i){openPoll(SAMPLE_POLLS[i].id);}
 
 // ============================================================
 //  COMMUNITY
 // ============================================================
-function initCommunity(){
+async function initCommunity(){
   if(STATE.settings.hideProfile){showPage('home');return;}
-  renderCommunityComments();
-  renderShoutouts();
+  await Promise.all([loadComments(),loadShoutouts(),loadSiteStats()]);
   const commentForm=document.getElementById('community-comment-form');
   const locked=document.getElementById('community-locked');
   if(commentForm&&locked){
@@ -1541,55 +1596,87 @@ function initCommunity(){
     if(avatar) avatar.textContent=STATE.currentUser.username.charAt(0).toUpperCase();
   }
 }
-function renderCommunityComments(){
+
+async function loadComments(){
+  const {data}=await sb.from('comments').select('*').order('created_at',{ascending:false}).limit(30);
   const list=document.getElementById('comments-list');
   if(!list) return;
   list.innerHTML='';
-  SAMPLE_COMMENTS.forEach(c=>{
+  if(!data||!data.length){
+    list.innerHTML='<p style="font-size:14px;color:var(--text-muted)">No comments yet. Be the first!</p>';return;
+  }
+  data.forEach(c=>{
     const div=document.createElement('div');
     div.className='card card-sm';
     div.style.cssText='display:flex;gap:10px;align-items:flex-start';
-    div.innerHTML=`<div class="avatar avatar-sm" style="width:32px;height:32px;font-size:13px;flex-shrink:0">${c.user.charAt(0)}</div>
-      <div><div style="font-weight:500;font-size:14px;margin-bottom:2px">${c.user}</div>
-      <div style="font-size:14px;color:var(--text-secondary)">${c.text}</div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">${c.time}</div></div>`;
+    div.innerHTML=`<div class="avatar avatar-sm" style="width:32px;height:32px;font-size:13px;flex-shrink:0">${c.username.charAt(0)}</div>
+      <div><div style="font-weight:500;font-size:14px;margin-bottom:2px">${c.username}</div>
+      <div style="font-size:14px;color:var(--text-secondary)">${c.body}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">${formatDate(c.created_at)}</div></div>`;
     list.appendChild(div);
   });
 }
-function submitComment(){
+
+async function submitComment(){
   const input=document.getElementById('comment-input');
   const text=input?.value.trim();
   if(!text||!STATE.currentUser) return;
-  SAMPLE_COMMENTS.unshift({user:STATE.currentUser.username,userId:STATE.currentUser.uid,text,time:'just now'});
+  const {error}=await sb.from('comments').insert({user_id:STATE.currentUser.id,username:STATE.currentUser.username,body:text});
+  if(error){alert('Error posting comment.');return;}
   input.value='';
-  renderCommunityComments();
+  loadComments();
 }
-function renderShoutouts(){
+
+async function loadShoutouts(){
+  const {data}=await sb.from('shoutouts').select('*').order('created_at',{ascending:false}).limit(10);
   const list=document.getElementById('shoutouts-list');
   if(!list) return;
   list.innerHTML='';
-  SAMPLE_SHOUTOUTS.forEach(s=>{
+  if(!data||!data.length){
+    list.innerHTML='<p style="font-size:14px;color:var(--text-muted)">No shoutouts yet.</p>';return;
+  }
+  data.forEach(s=>{
     const div=document.createElement('div');
     div.className='card card-sm';
-    div.innerHTML=`<div style="display:flex;gap:8px;align-items:flex-start"><span style="font-size:16px">📣</span><div><span style="font-weight:600;font-size:14px">${s.user}</span><span style="color:var(--text-secondary);font-size:14px"> — ${s.msg}</span><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${s.time}</div></div></div>`;
+    div.innerHTML=`<div style="display:flex;gap:8px;align-items:flex-start"><span style="font-size:16px">📣</span><div><span style="font-weight:600;font-size:14px">${s.username}</span><span style="color:var(--text-secondary);font-size:14px"> — ${s.message}</span><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${formatDate(s.created_at)}</div></div></div>`;
     list.appendChild(div);
   });
 }
-function searchUser(){
+
+async function loadSiteStats(){
+  const {data}=await sb.from('site_stats').select('*').single();
+  if(!data) return;
+  document.getElementById('stat-profiles').textContent=(data.total_profiles||0).toLocaleString();
+  document.getElementById('stat-polls').textContent=(data.total_polls||0).toLocaleString();
+  document.getElementById('stat-responses').textContent=(data.total_responses||0).toLocaleString();
+  document.getElementById('stat-stars').textContent='⭐ '+(data.total_stars||0).toLocaleString();
+}
+
+async function searchUser(){
   const id=document.getElementById('community-user-search')?.value.trim().toUpperCase();
   const result=document.getElementById('community-user-result');
   if(!id||!result) return;
   if(STATE.settings.hideProfile){result.innerHTML='<div class="alert alert-warn">Profile visibility is disabled.</div>';return;}
-  // Stub user lookup
-  if(id==='U100001'&&STATE.currentUser){
-    result.innerHTML=`<div class="card card-sm" style="cursor:pointer" onclick="showPage('profile')">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="avatar avatar-sm">${STATE.currentUser.username.charAt(0)}</div>
-        <div><div style="font-weight:600">${STATE.currentUser.username}</div><div style="font-size:12px;color:var(--text-muted)">${id}</div></div>
-      </div></div>`;
-  } else {
-    result.innerHTML=`<div class="alert alert-warn">No user found with ID ${id}</div>`;
-  }
+  const {data,error}=await sb.from('profiles').select('username,uid,active_title').eq('uid',id).eq('hide_profile',false).single();
+  if(!data){result.innerHTML=`<div class="alert alert-warn">No user found with ID ${id}</div>`;return;}
+  const title=STATE.allTitles.find(t=>t.id===data.active_title);
+  result.innerHTML=`<div class="card card-sm">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="avatar avatar-sm">${data.username.charAt(0)}</div>
+      <div>
+        <div style="font-weight:600">${data.username} ${title?`<span class="title-badge title-tier-${title.tier}">${title.emoji} ${title.name}</span>`:''}</div>
+        <div style="font-size:12px;color:var(--text-muted)">${data.uid}</div>
+      </div>
+    </div></div>`;
+}
+
+// Subscribe to realtime shoutouts
+function subscribeShoutouts(){
+  sb.channel('shoutouts').on('postgres_changes',{event:'INSERT',schema:'public',table:'shoutouts'},payload=>{
+    const s=payload.new;
+    showShoutout(s.username,s.message);
+    loadShoutouts();
+  }).subscribe();
 }
 
 // ============================================================
@@ -1612,19 +1699,20 @@ function toggleDarkMode(cb){
   STATE.settings.darkMode=cb.checked;
   document.documentElement.setAttribute('data-theme',cb.checked?'dark':'light');
   saveSettings();
+  if(STATE.currentUser) sb.from('profiles').update({}).eq('id',STATE.currentUser.id); // settings saved locally for now
 }
 function toggleHideProfile(cb){
   STATE.settings.hideProfile=cb.checked;
   saveSettings();
   updateNavForAuth();
+  if(STATE.currentUser) sb.from('profiles').update({hide_profile:cb.checked}).eq('id',STATE.currentUser.id);
 }
 
 // ============================================================
 //  PROFILE
 // ============================================================
-function renderProfile(user){
+async function renderProfile(user){
   if(!user){
-    // Show guest prompt
     document.getElementById('profile-username').textContent='Guest';
     document.getElementById('profile-uid').textContent='Not signed in';
     document.getElementById('profile-avatar').textContent='G';
@@ -1634,11 +1722,14 @@ function renderProfile(user){
     document.getElementById('profile-stars-alltime').textContent='—';
     document.getElementById('profile-active-title').textContent='';
     document.getElementById('star-shop-section').style.display='none';
-    document.getElementById('titles-list').innerHTML='<p style="font-size:14px;color:var(--text-muted)"><a onclick="openAuthModal(\'signup\')" style="cursor:pointer">Sign up</a> to earn titles and track your stats.</p>';
+    document.getElementById('titles-list').innerHTML=`<p style="font-size:14px;color:var(--text-muted)"><a onclick="openAuthModal('signup')" style="cursor:pointer">Sign up</a> to earn titles and track your stats.</p>`;
     document.getElementById('profile-own-controls').style.display='none';
     return;
   }
-  const u=user;
+  // Refresh from DB
+  const fresh=await loadUserProfile(user.id);
+  if(fresh) STATE.currentUser=fresh;
+  const u=STATE.currentUser;
   document.getElementById('profile-username').textContent=u.username;
   document.getElementById('profile-uid').textContent=u.uid;
   document.getElementById('profile-avatar').textContent=u.username.charAt(0).toUpperCase();
@@ -1646,7 +1737,7 @@ function renderProfile(user){
   document.getElementById('profile-created').textContent=u.created;
   document.getElementById('profile-stars-current').textContent=`${u.stars} ⭐`;
   document.getElementById('profile-stars-alltime').textContent=u.starsAllTime;
-  const activeT=TITLES_SHOP.find(t=>t.id===u.activeTitle);
+  const activeT=STATE.allTitles.find(t=>t.id===u.activeTitle);
   const titleEl=document.getElementById('profile-active-title');
   titleEl.textContent=activeT?`${activeT.emoji} ${activeT.name}`:'';
   titleEl.className=`title-badge title-tier-${activeT?.tier||'c'}`;
@@ -1656,28 +1747,33 @@ function renderProfile(user){
   renderShopGrid(u);
   renderMyPolls(u);
 }
+
 function renderTitlesList(u){
   const list=document.getElementById('titles-list');
   list.innerHTML='';
-  TITLES_SHOP.filter(t=>u.unlockedTitles?.includes(t.id)).forEach(t=>{
+  STATE.allTitles.filter(t=>u.unlockedTitles?.includes(t.id)).forEach(t=>{
     const badge=document.createElement('button');
     badge.className=`title-badge title-tier-${t.tier}`;
     badge.style.cssText='cursor:pointer;border:none;padding:5px 12px;font-size:13px';
     badge.textContent=`${t.emoji} ${t.name}`;
-    badge.title=t.desc;
+    badge.title=t.description;
     badge.onclick=()=>setActiveTitle(t.id);
     if(t.id===u.activeTitle) badge.style.outline='2px solid var(--accent)';
     list.appendChild(badge);
   });
 }
-function setActiveTitle(id){
-  if(STATE.currentUser) STATE.currentUser.activeTitle=id;
+
+async function setActiveTitle(id){
+  if(!STATE.currentUser) return;
+  await sb.from('profiles').update({active_title:id}).eq('id',STATE.currentUser.id);
+  STATE.currentUser.activeTitle=id;
   renderProfile(STATE.currentUser);
 }
+
 function renderShopGrid(u){
   const grid=document.getElementById('shop-titles-grid');
   grid.innerHTML='';
-  TITLES_SHOP.forEach(t=>{
+  STATE.allTitles.forEach(t=>{
     const owned=u.unlockedTitles?.includes(t.id);
     const canAfford=u.stars>=t.cost;
     const card=document.createElement('div');
@@ -1686,26 +1782,34 @@ function renderShopGrid(u){
       <span class="title-badge title-tier-${t.tier}">${t.emoji} ${t.name}</span>
       ${owned?'<span style="font-size:12px;color:var(--success);font-weight:500">✓ Owned</span>':''}
     </div>
-    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">${t.desc}</p>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">${t.description}</p>
     ${t.cost===0?'<span style="font-size:12px;color:var(--text-muted)">Free — starter title</span>':
       owned?`<button class="btn btn-sm" style="width:100%;background:var(--accent-glow);color:var(--accent)" onclick="setActiveTitle('${t.id}')">Set Active</button>`:
       `<button class="btn btn-primary btn-sm" style="width:100%" onclick="buyTitle('${t.id}')" ${canAfford?'':'disabled'}>Buy — ${t.cost} ⭐</button>`}`;
     grid.appendChild(card);
   });
 }
-function buyTitle(id){
+
+async function buyTitle(id){
   const u=STATE.currentUser;
-  const t=TITLES_SHOP.find(x=>x.id===id);
+  const t=STATE.allTitles.find(x=>x.id===id);
   if(!u||!t||u.stars<t.cost) return;
-  u.stars-=t.cost;
-  if(!u.unlockedTitles) u.unlockedTitles=[];
-  u.unlockedTitles.push(id);
-  document.getElementById('nav-star-count').textContent=u.stars;
-  renderProfile(u);
+  // Deduct stars
+  const {error}=await sb.from('profiles').update({stars:u.stars-t.cost}).eq('id',u.id);
+  if(error){alert('Error purchasing title.');return;}
+  // Insert user_title
+  await sb.from('user_titles').insert({user_id:u.id,title_id:id});
+  // Log transaction
+  await sb.from('star_transactions').insert({user_id:u.id,amount:-t.cost,reason:'title_purchase',ref_id:id});
+  STATE.currentUser.stars-=t.cost;
+  STATE.currentUser.unlockedTitles.push(id);
+  document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
+  renderProfile(STATE.currentUser);
 }
-function renderMyPolls(u){
-  const myPolls=SAMPLE_POLLS.filter(p=>p.authorId===u?.uid);
-  renderPollGrid(myPolls,'my-polls-grid');
+
+async function renderMyPolls(u){
+  const {data}=await sb.from('polls_with_categories').select('*').eq('author_id',u.id).order('created_at',{ascending:false});
+  renderPollGrid(data||[],'my-polls-grid');
 }
 function toggleMyPolls(){
   STATE.myPollsVisible=!STATE.myPollsVisible;
@@ -1713,20 +1817,25 @@ function toggleMyPolls(){
 }
 
 // ============================================================
-//  SHOUTOUT SYSTEM
+//  SHOUTOUTS
 // ============================================================
-function buyShoutout(){
+async function buyShoutout(){
   const u=STATE.currentUser;
   if(!u||u.stars<30){alert('You need 30 stars to buy a shoutout.');return;}
   const msg=document.getElementById('shoutout-msg-input')?.value.trim();
   if(!msg){alert('Please enter a message.');return;}
-  u.stars-=30;
-  document.getElementById('nav-star-count').textContent=u.stars;
-  document.getElementById('shop-star-count').textContent=u.stars;
+  const {error}=await sb.from('profiles').update({stars:u.stars-30}).eq('id',u.id);
+  if(error){alert('Error purchasing shoutout.');return;}
+  await sb.from('shoutouts').insert({user_id:u.id,username:u.username,message:msg});
+  await sb.from('star_transactions').insert({user_id:u.id,amount:-30,reason:'shoutout'});
+  STATE.currentUser.stars-=30;
+  document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
+  document.getElementById('shop-star-count').textContent=STATE.currentUser.stars;
   document.getElementById('shoutout-msg-input').value='';
-  SAMPLE_SHOUTOUTS.unshift({user:u.username,msg,time:'just now'});
+  // Realtime will trigger the banner for everyone; show it locally too
   showShoutout(u.username,msg);
 }
+
 let shoutoutTimer=null;
 function showShoutout(from,msg){
   document.getElementById('shoutout-from').textContent=from;
@@ -1736,31 +1845,104 @@ function showShoutout(from,msg){
   clearTimeout(shoutoutTimer);
   shoutoutTimer=setTimeout(closeShoutout,10000);
 }
-function closeShoutout(){
-  document.getElementById('shoutout-banner').classList.remove('show');
-}
+function closeShoutout(){document.getElementById('shoutout-banner').classList.remove('show');}
 
 // ============================================================
 //  UTILITIES
 // ============================================================
 function formatDate(d){
   if(!d) return '';
-  try{
-    return new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
-  }catch{return d;}
+  try{return new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch{return d;}
 }
 
 // ============================================================
 //  INIT
 // ============================================================
-(function init(){
-  loadSettings();
-  if(STATE.settings.darkMode){
-    document.documentElement.setAttribute('data-theme','dark');
+async function loadTrending(){
+  const wrap=document.getElementById('home-trending');
+  if(!wrap) return;
+  const {data}=await sb.from('polls_with_categories').select('*')
+    .not('featured_at','is',null)
+    .order('responses',{ascending:false})
+    .limit(3);
+  const polls=data||[];
+  // Remove the label div, keep it
+  const label=wrap.querySelector('div:first-child');
+  wrap.innerHTML='';
+  if(label) wrap.appendChild(label);
+  if(!polls.length){
+    const empty=document.createElement('div');
+    empty.className='empty-state';
+    empty.style.cssText='padding:32px 16px;background:var(--bg-secondary);border-radius:var(--radius-lg);border:1px solid var(--border)';
+    empty.innerHTML='<div class="empty-icon" style="font-size:32px">🗳️</div><div class="empty-title">No polls yet</div><div class="empty-desc">Be the first to create one!</div><button class="btn btn-primary btn-sm" onclick="showPage(&quot;create&quot;)" style="margin-top:12px">Create a poll</button>';
+    wrap.appendChild(empty);
+    return;
   }
-  // Render home sample polls
-  updateNavForAuth();
+  polls.forEach(poll=>{
+    const choices_promise=poll.format==='choice'
+      ? sb.from('choices').select('*').eq('poll_id',poll.id).order('position').then(({data})=>data||[])
+      : Promise.resolve([]);
+    choices_promise.then(choices=>{
+      const total=choices.reduce((s,c)=>s+(c.votes||0),0)||1;
+      const card=document.createElement('div');
+      card.className='poll-card';
+      card.style.background='var(--card-bg)';
+      card.onclick=()=>openPoll(poll.id,poll);
+      let barsHtml='';
+      if(poll.format==='choice'&&choices.length){
+        barsHtml='<div style="display:flex;flex-direction:column;gap:5px;margin-top:4px">';
+        choices.slice(0,3).forEach(c=>{
+          const pct=Math.round((c.votes||0)/total*100);
+          barsHtml+=`<div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:12px;color:var(--text-secondary);min-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.text}</span>
+            <div style="flex:1;height:5px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px"></div></div>
+            <span style="font-size:11px;color:var(--accent);font-weight:600;min-width:26px">${pct}%</span>
+          </div>`;
+        });
+        barsHtml+='</div>';
+      }
+      card.innerHTML=`
+        <span class="poll-card-type ${poll.format==='choice'?'type-choice':'type-answer'}">${poll.format==='choice'?'Multiple choice':'Short answer'}</span>
+        <div class="poll-card-title" style="font-size:15px">${poll.title}</div>
+        ${barsHtml}
+        <div class="poll-card-meta"><span>🗳️ ${(poll.responses||0).toLocaleString()} responses</span></div>`;
+      wrap.appendChild(card);
+    });
+  });
+}
 
+// 2. Full pagination for search
+async function doSearchPage(page){
+  STATE.browseResultPage=page;
+  const q=STATE.browseSearchText;
+  const cats=STATE.browseActiveCategories;
+  const perPage=10;
+  const from=(page-1)*perPage;
+  let query=sb.from('polls_with_categories').select('*',{count:'exact'});
+  if(q) query=query.ilike('title','%'+q+'%');
+  if(cats.length) query=query.overlaps('categories',cats);
+  query=applySort(query);
+  query=query.range(from,from+perPage-1);
+  const {data,count,error}=await query;
+  const results=data||[];
+  document.getElementById('search-results-label').textContent=`${count||0} result${count!==1?'s':''}`;
+  renderPollGrid(results,'search-results-grid');
+  renderPagination(count||0,perPage,page,'search-pagination');
+}
+
+(async function init(){
+  loadSettings();
+  if(STATE.settings.darkMode) document.documentElement.setAttribute('data-theme','dark');
+  updateNavForAuth();
+  await Promise.all([loadTitles(),loadCategories()]);
+  subscribeShoutouts();
+  loadTrending();
+  // Check for existing session
+  const {data:{session}}=await sb.auth.getSession();
+  if(session?.user){
+    STATE.currentUser=await loadUserProfile(session.user.id);
+    updateNavForAuth();
+  }
 })();
 </script>
 </body>
