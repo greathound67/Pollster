@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pollster</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #0f1b2d;
+  --navy-mid: #1a2d45;
+  --navy-light: #243d5c;
+  --accent: #4f8ef7;
+  --accent-dim: #3a6dc7;
+  --accent-glow: rgba(79,142,247,0.15);
+  --text-primary: #0f1b2d;
+  --text-secondary: #4a5568;
+  --text-muted: #8896a7;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f8fa;
+  --bg-tertiary: #eef1f6;
+  --border: rgba(15,27,45,0.1);
+  --border-strong: rgba(15,27,45,0.2);
+  --card-bg: #ffffff;
+  --nav-bg: rgba(255,255,255,0.92);
+  --star-color: #f5a623;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --shadow-sm: 0 1px 3px rgba(15,27,45,0.08);
+  --shadow-md: 0 4px 16px rgba(15,27,45,0.1);
+  --shadow-lg: 0 8px 32px rgba(15,27,45,0.14);
+  --transition: 0.18s ease;
+}
+[data-theme="dark"] {
+  --text-primary: #e8edf4;
+  --text-secondary: #a0aec0;
+  --text-muted: #5a6a7e;
+  --bg-primary: #0b1220;
+  --bg-secondary: #111827;
+  --bg-tertiary: #1a2333;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.15);
+  --card-bg: #111827;
+  --nav-bg: rgba(11,18,32,0.92);
+  --accent: #5f9bff;
+  --accent-dim: #4a7de0;
+  --accent-glow: rgba(95,155,255,0.12);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--font-body);background:var(--bg-primary);color:var(--text-primary);font-size:16px;line-height:1.6;min-height:100vh;transition:background var(--transition),color var(--transition)}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+button{font-family:var(--font-body);cursor:pointer;border:none;background:none}
+input,textarea,select{font-family:var(--font-body)}
+img{max-width:100%}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+
+/* ---- SCROLLBAR ---- */
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:3px}
+
+/* ---- NAV ---- */
+#main-nav{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--nav-bg);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--border);transition:background var(--transition)}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:8px}
+.nav-logo{font-family:var(--font-display);font-size:22px;font-weight:600;color:var(--text-primary);letter-spacing:-0.02em;display:flex;align-items:center;gap:8px;cursor:pointer;text-decoration:none;margin-right:16px}
+.nav-logo:hover{text-decoration:none;color:var(--accent)}
+.nav-logo-emoji{font-size:20px}
+.nav-links{display:flex;align-items:center;gap:2px;flex:1}
+.nav-link{padding:6px 14px;border-radius:var(--radius-sm);font-size:14px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all var(--transition);border:none;background:none}
+.nav-link:hover{color:var(--text-primary);background:var(--bg-tertiary)}
+.nav-link.active{color:var(--accent);background:var(--accent-glow)}
+.nav-right{display:flex;align-items:center;gap:8px;margin-left:auto}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 18px;border-radius:var(--radius-md);font-size:14px;font-weight:500;transition:all var(--transition);cursor:pointer;border:none}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-dim);transform:translateY(-1px);box-shadow:var(--shadow-sm)}
+.btn-secondary{background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--bg-secondary);border-color:var(--border-strong)}
+.btn-ghost{background:transparent;color:var(--text-secondary);border:1px solid var(--border)}
+.btn-ghost:hover{background:var(--bg-tertiary);color:var(--text-primary)}
+.btn-danger{background:#fee2e2;color:#dc2626;border:1px solid #fca5a5}
+.btn-danger:hover{background:#fca5a5}
+[data-theme="dark"] .btn-danger{background:rgba(220,38,38,0.15);color:#f87171;border-color:rgba(220,38,38,0.3)}
+.btn-sm{padding:5px 12px;font-size:13px;border-radius:var(--radius-sm)}
+.btn-lg{padding:12px 28px;font-size:16px;border-radius:var(--radius-lg)}
+.star-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(245,166,35,0.12);color:#c17b00;border:1px solid rgba(245,166,35,0.3);border-radius:var(--radius-sm);padding:4px 10px;font-size:13px;font-weight:500}
+[data-theme="dark"] .star-badge{color:var(--star-color);background:rgba(245,166,35,0.08)}
+
+/* ---- PAGE LAYOUT ---- */
+.page{display:none;padding-top:80px;min-height:100vh;animation:fadeIn 0.22s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.container{max-width:1100px;margin:0 auto;padding:0 24px}
+.page-header{padding:40px 0 32px}
+.page-title{font-family:var(--font-display);font-size:clamp(28px,4vw,42px);font-weight:600;color:var(--text-primary);letter-spacing:-0.02em;line-height:1.15}
+.page-subtitle{font-size:16px;color:var(--text-secondary);margin-top:8px}
+
+/* ---- CARDS ---- */
+.card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;box-shadow:var(--shadow-sm);transition:border-color var(--transition),box-shadow var(--transition)}
+.card:hover{border-color:var(--border-strong);box-shadow:var(--shadow-md)}
+.card-sm{padding:16px;border-radius:var(--radius-md)}
+
+/* ---- POLL CARD ---- */
+.poll-card{background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;cursor:pointer;transition:all var(--transition);display:flex;flex-direction:column;gap:10px}
+.poll-card:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow),var(--shadow-md);transform:translateY(-2px)}
+.poll-card-title{font-family:var(--font-display);font-size:17px;font-weight:600;color:var(--text-primary);line-height:1.3}
+.poll-card-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.poll-card-meta span{font-size:12px;color:var(--text-muted)}
+.poll-card-type{display:inline-flex;align-items:center;padding:2px 8px;border-radius:var(--radius-sm);font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em}
+.type-choice{background:rgba(79,142,247,0.1);color:var(--accent)}
+.type-answer{background:rgba(34,197,94,0.1);color:#16a34a}
+[data-theme="dark"] .type-answer{color:#4ade80}
+.poll-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+
+/* ---- FORMS ---- */
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-label{font-size:13px;font-weight:500;color:var(--text-secondary)}
+.form-input{padding:10px 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:14px;transition:all var(--transition);width:100%}
+.form-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.form-input::placeholder{color:var(--text-muted)}
+textarea.form-input{resize:vertical;min-height:80px}
+select.form-input{cursor:pointer}
+.form-hint{font-size:12px;color:var(--text-muted)}
+
+/* ---- CHOICE OPTIONS ---- */
+.choice-option{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-secondary);cursor:pointer;transition:all var(--transition)}
+.choice-option:hover{border-color:var(--accent);background:var(--accent-glow)}
+.choice-option.selected{border-color:var(--accent);background:var(--accent-glow)}
+.choice-radio{width:16px;height:16px;border-radius:50%;border:2px solid var(--border-strong);flex-shrink:0;transition:all var(--transition);display:flex;align-items:center;justify-content:center}
+.choice-option.selected .choice-radio{border-color:var(--accent);background:var(--accent)}
+.choice-option.selected .choice-radio::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
+.choice-bar{height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden;flex:1}
+.choice-bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width 0.6s cubic-bezier(.4,0,.2,1)}
+.choice-pct{font-size:12px;font-weight:600;color:var(--accent);min-width:32px;text-align:right}
+
+/* ---- SEARCH ---- */
+.search-wrap{position:relative}
+.search-wrap .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:16px;pointer-events:none}
+.search-input{padding:10px 14px 10px 38px;border-radius:var(--radius-md);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:14px;width:100%;transition:all var(--transition)}
+.search-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.search-input::placeholder{color:var(--text-muted)}
+
+/* ---- CATEGORIES ---- */
+.category-chip{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--bg-tertiary);font-size:12px;color:var(--text-secondary);cursor:pointer;transition:all var(--transition)}
+.category-chip:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-glow)}
+.category-chip.active{border-color:var(--accent);color:var(--accent);background:var(--accent-glow);font-weight:500}
+.category-chip .remove{font-size:14px;line-height:1;opacity:0.6}
+.category-chip .remove:hover{opacity:1}
+.categories-wrap{display:flex;flex-wrap:wrap;gap:6px}
+
+/* ---- STATS / PROFILE ---- */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
+.stat-card{background:var(--bg-secondary);border-radius:var(--radius-md);padding:16px;text-align:center}
+.stat-value{font-family:var(--font-display);font-size:28px;font-weight:600;color:var(--text-primary);line-height:1}
+.stat-label{font-size:12px;color:var(--text-muted);margin-top:4px}
+
+/* ---- TITLES / BADGES ---- */
+.title-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;letter-spacing:0.02em}
+.title-tier-s{background:linear-gradient(135deg,#ffd700,#ff8c00);color:#5a3000}
+.title-tier-a{background:linear-gradient(135deg,#c084fc,#818cf8);color:#2d1f5a}
+.title-tier-b{background:#dbeafe;color:#1e40af}
+[data-theme="dark"] .title-tier-b{background:rgba(59,130,246,0.2);color:#93c5fd}
+.title-tier-c{background:var(--bg-tertiary);color:var(--text-secondary)}
+
+/* ---- SHOUTOUT BANNER ---- */
+#shoutout-banner{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);z-index:9000;background:var(--navy);color:#fff;border-radius:var(--radius-lg);padding:14px 24px;font-size:14px;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:10px;max-width:480px;width:calc(100% - 48px);transition:transform 0.35s cubic-bezier(.34,1.56,.64,1),opacity 0.35s ease;opacity:0;pointer-events:none}
+[data-theme="dark"] #shoutout-banner{background:var(--navy-mid);border:1px solid var(--border)}
+#shoutout-banner.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
+.shoutout-icon{font-size:20px;flex-shrink:0}
+.shoutout-text{flex:1}
+.shoutout-name{font-weight:600;color:var(--accent)}
+.shoutout-close{background:rgba(255,255,255,0.15);border:none;color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background var(--transition)}
+.shoutout-close:hover{background:rgba(255,255,255,0.25)}
+
+/* ---- MODAL ---- */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:2000;display:flex;align-items:center;justify-content:center;padding:24px;opacity:0;pointer-events:none;transition:opacity 0.2s ease;backdrop-filter:blur(4px)}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal{background:var(--card-bg);border-radius:var(--radius-xl);padding:32px;max-width:520px;width:100%;box-shadow:var(--shadow-lg);border:1px solid var(--border);transform:scale(0.95);transition:transform 0.2s cubic-bezier(.34,1.56,.64,1)}
+.modal-overlay.show .modal{transform:scale(1)}
+.modal-title{font-family:var(--font-display);font-size:22px;font-weight:600;margin-bottom:20px}
+.modal-close{position:absolute;top:16px;right:16px;background:var(--bg-tertiary);border:none;color:var(--text-secondary);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all var(--transition)}
+.modal-close:hover{background:var(--border-strong);color:var(--text-primary)}
+
+/* ---- DIVIDER ---- */
+.divider{height:1px;background:var(--border);margin:24px 0}
+
+/* ---- SECTION ---- */
+.section{margin-bottom:40px}
+.section-title{font-family:var(--font-display);font-size:20px;font-weight:600;margin-bottom:16px;color:var(--text-primary)}
+
+/* ---- SORT TABS ---- */
+.sort-tabs{display:flex;gap:4px;background:var(--bg-tertiary);padding:4px;border-radius:var(--radius-md);width:fit-content;flex-wrap:wrap}
+.sort-tab{padding:6px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;border:none;background:none;transition:all var(--transition)}
+.sort-tab.active{background:var(--card-bg);color:var(--text-primary);box-shadow:var(--shadow-sm)}
+.sort-tab:hover:not(.active){color:var(--text-primary)}
+
+/* ---- TOGGLE ---- */
+.toggle-wrap{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}
+.toggle-info .toggle-label{font-size:15px;font-weight:500;color:var(--text-primary)}
+.toggle-info .toggle-desc{font-size:13px;color:var(--text-muted);margin-top:2px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{position:absolute;inset:0;background:var(--bg-tertiary);border-radius:12px;border:1px solid var(--border-strong);cursor:pointer;transition:all var(--transition)}
+.toggle-slider::before{content:'';position:absolute;width:18px;height:18px;left:2px;top:2px;background:var(--text-muted);border-radius:50%;transition:all var(--transition)}
+.toggle input:checked+.toggle-slider{background:var(--accent);border-color:var(--accent-dim)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px);background:#fff}
+
+/* ---- PROFILE AVATAR ---- */
+.avatar{width:72px;height:72px;border-radius:50%;background:var(--accent-glow);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:28px;font-weight:600;color:var(--accent);flex-shrink:0}
+.avatar-sm{width:36px;height:36px;font-size:14px}
+
+/* ---- PAGINATION ---- */
+.pagination{display:flex;align-items:center;gap:6px;justify-content:center;margin-top:24px}
+.page-btn{width:36px;height:36px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);font-size:14px;cursor:pointer;transition:all var(--transition);display:flex;align-items:center;justify-content:center}
+.page-btn:hover{border-color:var(--accent);color:var(--accent)}
+.page-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+/* ---- EMPTY STATE ---- */
+.empty-state{text-align:center;padding:60px 24px;color:var(--text-muted)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:18px;font-weight:500;color:var(--text-secondary);margin-bottom:6px}
+.empty-desc{font-size:14px}
+
+/* ---- ALERT ---- */
+.alert{padding:12px 16px;border-radius:var(--radius-md);font-size:14px;display:flex;align-items:flex-start;gap:10px}
+.alert-success{background:rgba(34,197,94,0.1);color:#15803d;border:1px solid rgba(34,197,94,0.2)}
+.alert-info{background:var(--accent-glow);color:var(--accent);border:1px solid rgba(79,142,247,0.2)}
+.alert-warn{background:rgba(245,166,35,0.1);color:#92400e;border:1px solid rgba(245,166,35,0.2)}
+[data-theme="dark"] .alert-success{color:#4ade80}
+[data-theme="dark"] .alert-warn{color:#fbbf24}
+
+/* ---- RESPONSIVE ---- */
+@media(max-width:640px){
+  .nav-links{gap:0}
+  .nav-link{padding:6px 8px;font-size:13px}
+  .container{padding:0 16px}
+  .page{padding-top:70px}
+  .poll-grid{grid-template-columns:1fr}
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:400px){
+  .nav-link span{display:none}
+  .nav-link{padding:6px}
+}
+</style>
+</head>
+<body>
+
+<!-- SHOUTOUT BANNER -->
+<div id="shoutout-banner" role="alert" aria-live="polite">
+  <span class="shoutout-icon">📣</span>
+  <div class="shoutout-text">
+    <span class="shoutout-name" id="shoutout-from">UserName</span>
+    <span id="shoutout-msg"> says: Great polls everyone!</span>
+  </div>
+  <button class="shoutout-close" onclick="closeShoutout()" aria-label="Close">✕</button>
+</div>
+
+<!-- NAVIGATION -->
+<nav id="main-nav">
+  <div class="nav-inner">
+    <a class="nav-logo" onclick="showPage('home')">
+      <span class="nav-logo-emoji">🗳️</span>
+      <span>Pollster</span>
+    </a>
+    <div class="nav-links" id="nav-links">
+      <button class="nav-link active" onclick="showPage('home')" data-page="home"><span>Home</span></button>
+      <button class="nav-link" onclick="showPage('browse')" data-page="browse"><span>Browse</span></button>
+      <button class="nav-link" onclick="showPage('create')" data-page="create"><span>Create</span></button>
+      <button class="nav-link" id="nav-community" onclick="showPage('community')" data-page="community" style="display:none"><span>Community</span></button>
+    </div>
+    <div class="nav-right">
+      <div class="star-badge" id="nav-stars" style="display:none">⭐ <span id="nav-star-count">0</span></div>
+      <button class="btn btn-ghost btn-sm" onclick="showPage('settings')">⚙️</button>
+      <button class="nav-link" id="nav-profile-btn" onclick="showPage('profile')" data-page="profile" style="display:none">
+        <div class="avatar avatar-sm" id="nav-avatar" style="width:30px;height:30px;font-size:12px">G</div>
+      </button>
+      <button class="btn btn-ghost btn-sm" id="nav-login-btn" onclick="openAuthModal('login')">Log in</button>
+      <button class="btn btn-primary btn-sm" id="nav-signup-btn" onclick="openAuthModal('signup')">Sign up</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================ -->
+<!--  HOME PAGE                                                    -->
+<!-- ============================================================ -->
+<div id="page-home" class="page active">
+
+  <!-- HERO BAND -->
+  <div style="background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:52px 0 44px">
+    <div class="container">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center" class="home-hero-grid">
+
+        <div style="display:flex;flex-direction:column;gap:18px">
+          <div style="display:inline-flex;align-items:center;gap:6px;background:var(--accent-glow);border:1px solid rgba(79,142,247,0.25);border-radius:20px;padding:5px 14px;width:fit-content">
+            <span style="font-size:13px;color:var(--accent);font-weight:500">🗳️ polls, opinions &amp; vibes</span>
+          </div>
+          <h1 style="font-family:var(--font-display);font-size:clamp(30px,4.5vw,50px);font-weight:600;line-height:1.12;letter-spacing:-0.02em;color:var(--text-primary)">
+            Ask anything.<br>Find out what<br><em style="color:var(--accent)">people actually think.</em>
+          </h1>
+          <p style="font-size:15px;color:var(--text-secondary);line-height:1.7;max-width:400px">
+            Pollster is the no-fuss place to ask questions and see what people think. Quick polls, honest answers, zero pressure. Jump in — no account needed.
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-primary btn-lg" onclick="showPage('browse')">Browse Polls</button>
+            <button class="btn btn-secondary btn-lg" onclick="showPage('create')">Create a Poll</button>
+          </div>
+          <p style="font-size:13px;color:var(--text-muted)"><a onclick="openAuthModal('signup')" style="cursor:pointer">Sign up free</a> to earn stars &amp; collect titles like <strong style="color:var(--text-secondary)">Poll Goblin</strong> 👺</p>
+        </div>
+
+        <!-- Trending poll previews — populated from Supabase -->
+        <div style="display:flex;flex-direction:column;gap:12px" id="home-trending">
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:2px">🔥 Trending right now</div>
+          <div class="empty-state" style="padding:32px 16px;background:var(--bg-secondary);border-radius:var(--radius-lg);border:1px solid var(--border)">
+            <div class="empty-icon" style="font-size:32px">🗳️</div>
+            <div class="empty-title">No polls yet</div>
+            <div class="empty-desc">Be the first to create one!</div>
+            <button class="btn btn-primary btn-sm" onclick="showPage('create')" style="margin-top:12px">Create a poll</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  <style>@media(max-width:700px){.home-hero-grid{grid-template-columns:1fr !important}}</style>
+
+  <!-- HOW IT WORKS -->
+  <div class="container" style="padding-top:44px;padding-bottom:16px">
+    <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:18px">How it works</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:40px">
+      <div style="padding:18px 20px;background:var(--bg-secondary);border-radius:var(--radius-lg);border:1px solid var(--border)">
+        <div style="font-size:26px;margin-bottom:8px">💬</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Ask something</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Type a question, pick a format. Done in under a minute.</div>
+      </div>
+      <div style="padding:18px 20px;background:var(--bg-secondary);border-radius:var(--radius-lg);border:1px solid var(--border)">
+        <div style="font-size:26px;margin-bottom:8px">🌍</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">People answer</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Anyone can fill out polls — account or not. The more the merrier.</div>
+      </div>
+      <div style="padding:18px 20px;background:var(--bg-secondary);border-radius:var(--radius-lg);border:1px solid var(--border)">
+        <div style="font-size:26px;margin-bottom:8px">📊</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">See the results</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Live percentages update as responses come in.</div>
+      </div>
+      <div style="padding:18px 20px;background:var(--bg-secondary);border-radius:var(--radius-lg);border:1px solid var(--border)">
+        <div style="font-size:26px;margin-bottom:8px">⭐</div>
+        <div style="font-weight:600;font-size:14px;margin-bottom:4px">Earn stars</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Sign up to collect stars and unlock titles in the Star Shop.</div>
+      </div>
+    </div>
+
+    <!-- CTA strip -->
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:22px 26px;background:var(--accent-glow);border:1px solid rgba(79,142,247,0.2);border-radius:var(--radius-xl);margin-bottom:56px">
+      <div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:3px">Ready to jump in?</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Free, fast, no spam. Ever.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="openAuthModal('signup')">Create a free account</button>
+        <button class="btn btn-ghost" onclick="showPage('browse')">Just browse first</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  BROWSE PAGE                                                  -->
+<!-- ============================================================ -->
+<div id="page-browse" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">Search Polls</h1>
+      <p class="page-subtitle">Explore what the community is asking</p>
+    </div>
+
+    <!-- Search Controls -->
+    <div class="card" style="margin-bottom:24px">
+      <div style="display:flex;flex-direction:column;gap:16px">
+
+        <div class="form-group">
+          <label class="form-label">Search by text</label>
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input class="search-input" id="browse-text-search" placeholder="Search poll questions..." oninput="doBrowseSearch()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Search by Poll ID</label>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="browse-id-search" placeholder="e.g. P100001" style="max-width:220px">
+            <button class="btn btn-secondary btn-sm" onclick="searchById()">Go</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Filter by categories <span style="color:var(--text-muted)">(up to 6)</span></label>
+          <div class="categories-wrap" id="active-categories" style="margin-bottom:8px"></div>
+          <div class="categories-wrap" id="suggested-categories">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <label class="form-label" style="margin:0">Sort by:</label>
+          <div class="sort-tabs" id="sort-tabs">
+            <button class="sort-tab active" onclick="setSort('popular',this)">Most Popular</button>
+            <button class="sort-tab" onclick="setSort('newest',this)">Newest</button>
+            <button class="sort-tab" onclick="setSort('oldest',this)">Oldest</button>
+            <button class="sort-tab" onclick="setSort('az',this)">A–Z</button>
+            <button class="sort-tab" onclick="setSort('za',this)">Z–A</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Search Results -->
+    <div id="browse-search-results" style="display:none">
+      <div class="section-title" id="search-results-label">Results</div>
+      <div class="poll-grid" id="search-results-grid"></div>
+      <div class="pagination" id="search-pagination"></div>
+      <div class="divider"></div>
+    </div>
+
+    <!-- Recent Feed -->
+    <div>
+      <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">…or just scroll down to see the most recent polls.</p>
+      <div class="poll-grid" id="recent-polls-grid"></div>
+      <div id="recent-load-more" style="text-align:center;padding:24px">
+        <button class="btn btn-ghost" onclick="loadMoreRecent()">Load more</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  POLL PAGE (shown when clicking a poll)                       -->
+<!-- ============================================================ -->
+<div id="page-poll" class="page">
+  <div class="container" style="max-width:680px">
+    <button class="btn btn-ghost btn-sm" onclick="goBackToBrowse()" style="margin-top:16px">← Back to Browse</button>
+    <div class="page-header" style="padding-top:24px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span class="poll-card-type" id="poll-page-type">Multiple choice</span>
+        <span style="font-size:12px;color:var(--text-muted)" id="poll-page-id">P100001</span>
+      </div>
+      <h1 class="page-title" id="poll-page-title" style="font-size:clamp(22px,3vw,32px)">Poll question here</h1>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:10px">
+        <span style="font-size:13px;color:var(--text-secondary)">By: <strong id="poll-page-author">Guest</strong></span>
+        <span style="font-size:13px;color:var(--text-muted)" id="poll-page-date">Created: Jan 1, 2025</span>
+      </div>
+      <div class="categories-wrap" id="poll-page-cats" style="margin-top:10px"></div>
+    </div>
+
+    <!-- Poll Content -->
+    <div class="card" id="poll-answer-area">
+      <!-- Filled by JS -->
+    </div>
+
+    <div style="margin-top:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <span style="font-size:14px;color:var(--text-secondary)">🗳️ <strong id="poll-page-responses">0</strong> total responses</span>
+    </div>
+
+    <!-- Creator Controls -->
+    <div id="poll-creator-controls" style="display:none;margin-top:24px">
+      <div class="card card-sm" style="border-color:var(--accent)">
+        <div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:12px">📝 Creator Controls</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" onclick="openEditPollModal()">Edit Categories</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePoll()">Delete Poll</button>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:32px">
+      <a onclick="showPage('browse')" style="font-size:14px;cursor:pointer">← Browse more polls</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  CREATE PAGE                                                  -->
+<!-- ============================================================ -->
+<div id="page-create" class="page">
+  <div class="container" style="max-width:640px">
+    <div class="page-header">
+      <h1 class="page-title">Create a Poll</h1>
+      <p class="page-subtitle">Ask the world something interesting</p>
+    </div>
+
+    <div id="create-form-wrap">
+      <!-- Format Toggle -->
+      <div class="section">
+        <div class="section-title">Poll Format</div>
+        <div class="sort-tabs">
+          <button class="sort-tab active" id="fmt-choice-btn" onclick="setFormat('choice')">🔘 Multiple Choice</button>
+          <button class="sort-tab" id="fmt-answer-btn" onclick="setFormat('answer')">✏️ Short Answer</button>
+        </div>
+      </div>
+
+      <!-- Question -->
+      <div class="section">
+        <div class="form-group">
+          <label class="form-label">Question <span style="color:var(--text-muted)">(max 50 characters)</span></label>
+          <input class="form-input" id="create-question" maxlength="50" placeholder="What's on your mind?" oninput="updateCharCount()">
+          <div class="form-hint" id="create-char-count">0 / 50</div>
+        </div>
+      </div>
+
+      <!-- Choice Options (shown when format = choice) -->
+      <div class="section" id="choice-options-section">
+        <div class="section-title">Answer Choices <span style="font-size:14px;font-weight:400;color:var(--text-muted)">(min 3, max 8)</span></div>
+        <div id="choice-list" style="display:flex;flex-direction:column;gap:8px">
+          <!-- populated by JS -->
+        </div>
+        <button class="btn btn-ghost btn-sm" id="add-choice-btn" onclick="addChoice()" style="margin-top:10px">+ Add choice</button>
+      </div>
+
+      <!-- Short Answer Settings (shown when format = answer) -->
+      <div class="section" id="answer-options-section" style="display:none">
+        <div class="toggle-wrap" style="border:none;padding:0">
+          <div class="toggle-info">
+            <div class="toggle-label">Allow others to see responses</div>
+            <div class="toggle-desc">Respondents can view all submitted answers after filling out</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="answer-visible-toggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Categories -->
+      <div class="section">
+        <div class="form-group">
+          <label class="form-label">Categories <span style="color:var(--text-muted)">(up to 8)</span></label>
+          <div class="categories-wrap" id="create-selected-cats" style="margin-bottom:8px"></div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <input class="form-input" id="create-cat-input" placeholder="Add or create a category..." style="flex:1" onkeydown="if(event.key==='Enter'){addCategory()}">
+            <button class="btn btn-secondary btn-sm" onclick="addCategory()">Add</button>
+          </div>
+          <div class="categories-wrap" id="create-cat-suggestions"></div>
+        </div>
+      </div>
+
+      <!-- Guest Warning -->
+      <div class="alert alert-warn" id="guest-poll-warn" style="margin-bottom:20px;display:none">
+        ⚠️ As a guest, you can create up to 3 polls per day. You won't be able to edit polls after submission. <a onclick="openAuthModal('signup')" style="cursor:pointer;font-weight:600">Sign up</a> for unlimited polls!
+      </div>
+
+      <button class="btn btn-primary btn-lg" onclick="submitPoll()" style="width:100%">Done! 🎉</button>
+    </div>
+
+    <!-- Success State -->
+    <div id="create-success" style="display:none;text-align:center;padding:40px 0">
+      <div style="font-size:64px;margin-bottom:16px">🎉</div>
+      <h2 style="font-family:var(--font-display);font-size:28px;font-weight:600;margin-bottom:8px">Hooray!</h2>
+      <p style="color:var(--text-secondary);margin-bottom:8px">You submitted a poll.</p>
+      <p style="color:var(--text-secondary);margin-bottom:24px">The ID is: <strong id="new-poll-id" style="font-family:monospace;color:var(--accent)">P100001</strong></p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="goToNewPoll()">Take me there</button>
+        <button class="btn btn-secondary" onclick="resetCreateForm()">Create another</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  COMMUNITY PAGE                                               -->
+<!-- ============================================================ -->
+<div id="page-community" class="page">
+  <div class="container">
+    <div class="page-header">
+      <h1 class="page-title">Community</h1>
+      <p class="page-subtitle">See what's happening on Pollster</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start" class="community-grid">
+      <div>
+        <!-- User Search -->
+        <div class="section">
+          <div class="section-title">Find a User</div>
+          <div style="display:flex;gap:8px">
+            <input class="form-input" id="community-user-search" placeholder="Enter User ID (e.g. U100001)">
+            <button class="btn btn-secondary btn-sm" onclick="searchUser()">Search</button>
+          </div>
+          <div id="community-user-result" style="margin-top:12px"></div>
+        </div>
+
+        <!-- Comment Section -->
+        <div class="section">
+          <div class="section-title">Community Board</div>
+          <div id="community-locked" class="alert alert-info" style="margin-bottom:16px;display:none">
+            💬 <a onclick="openAuthModal('login')" style="cursor:pointer">Log in</a> to leave a comment.
+          </div>
+          <div id="community-comment-form" style="display:none;margin-bottom:16px">
+            <div style="display:flex;gap:10px">
+              <div class="avatar avatar-sm" id="comment-avatar">G</div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                <textarea class="form-input" id="comment-input" placeholder="Say something to the community..." rows="2" maxlength="200"></textarea>
+                <div style="display:flex;justify-content:flex-end">
+                  <button class="btn btn-primary btn-sm" onclick="submitComment()">Post</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="comments-list" style="display:flex;flex-direction:column;gap:12px">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Recent Shoutouts -->
+        <div class="section">
+          <div class="section-title">Recent Shoutouts 📣</div>
+          <div id="shoutouts-list" style="display:flex;flex-direction:column;gap:10px">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar Stats -->
+      <div>
+        <div class="card">
+          <div style="font-weight:600;margin-bottom:16px">📊 Pollster Stats</div>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+              <span style="font-size:14px;color:var(--text-secondary)">Total Profiles</span>
+              <span style="font-weight:600;font-family:var(--font-display)" id="stat-profiles">1,284</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+              <span style="font-size:14px;color:var(--text-secondary)">Total Polls</span>
+              <span style="font-weight:600;font-family:var(--font-display)" id="stat-polls">4,891</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-bottom:10px;border-bottom:1px solid var(--border)">
+              <span style="font-size:14px;color:var(--text-secondary)">Poll Responses</span>
+              <span style="font-weight:600;font-family:var(--font-display)" id="stat-responses">98,341</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span style="font-size:14px;color:var(--text-secondary)">Stars Earned</span>
+              <span style="font-weight:600;font-family:var(--font-display)" id="stat-stars">⭐ 23,104</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <style>
+      @media(max-width:700px){.community-grid{grid-template-columns:1fr !important}}
+    </style>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  SETTINGS PAGE                                                -->
+<!-- ============================================================ -->
+<div id="page-settings" class="page">
+  <div class="container" style="max-width:560px">
+    <div class="page-header">
+      <h1 class="page-title">Settings</h1>
+    </div>
+    <div class="card">
+
+      <div class="toggle-wrap">
+        <div class="toggle-info">
+          <div class="toggle-label">🌙 Dark Mode</div>
+          <div class="toggle-desc">Switch to a darker color scheme</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="dark-mode-toggle" onchange="toggleDarkMode(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-wrap" id="anon-polls-toggle-wrap" style="display:none">
+        <div class="toggle-info">
+          <div class="toggle-label">👻 Show Anonymous Polls</div>
+          <div class="toggle-desc">Display polls created by guests in the browse feed</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="anon-polls-toggle" checked onchange="saveSetting('showAnonPolls',this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-wrap">
+        <div class="toggle-info">
+          <div class="toggle-label">🔒 Hide My Profile</div>
+          <div class="toggle-desc">Recommended for users under 10. Hides your profile, others' profiles, shoutouts, and the Community tab</div>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" id="hide-profile-toggle" onchange="toggleHideProfile(this)">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div style="padding-top:20px;margin-top:4px" id="settings-auth-section">
+        <div id="settings-signed-out">
+          <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px">Sign in to save settings to your account and unlock community features.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="openAuthModal('login')">Log in</button>
+            <button class="btn btn-secondary" onclick="openAuthModal('signup')">Sign up</button>
+          </div>
+        </div>
+        <div id="settings-signed-in" style="display:none">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <div class="avatar avatar-sm" id="settings-avatar">G</div>
+            <div>
+              <div style="font-weight:600" id="settings-username">Username</div>
+              <div style="font-size:13px;color:var(--text-muted)" id="settings-uid">U100001</div>
+            </div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="signOut()">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  PROFILE PAGE                                                 -->
+<!-- ============================================================ -->
+<div id="page-profile" class="page">
+  <div class="container" style="max-width:700px">
+    <div class="page-header">
+      <div style="display:flex;align-items:flex-start;gap:20px;flex-wrap:wrap">
+        <div class="avatar" id="profile-avatar">G</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <h1 style="font-family:var(--font-display);font-size:28px;font-weight:600" id="profile-username">Username</h1>
+            <span class="title-badge title-tier-b" id="profile-active-title">New Poller</span>
+          </div>
+          <div style="font-size:13px;color:var(--text-muted);margin-top:4px" id="profile-uid">U100001</div>
+          <div style="margin-top:12px" id="profile-own-controls" style="display:none"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stat-grid" style="margin-bottom:28px">
+      <div class="stat-card">
+        <div class="stat-value" id="profile-responded">0</div>
+        <div class="stat-label">Polls Responded</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="profile-created">0</div>
+        <div class="stat-label">Polls Created</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" style="color:var(--star-color)" id="profile-stars-current">0 ⭐</div>
+        <div class="stat-label">Stars (current)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="profile-stars-alltime">0</div>
+        <div class="stat-label">Stars (all time)</div>
+      </div>
+    </div>
+
+    <!-- Polls Created -->
+    <div class="section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="section-title" style="margin:0">My Polls</div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleMyPolls()">View Polls</button>
+      </div>
+      <div id="my-polls-list" style="display:none">
+        <div class="poll-grid" id="my-polls-grid"></div>
+        <button class="btn btn-ghost btn-sm" onclick="toggleMyPolls()" style="margin-top:12px">Hide</button>
+      </div>
+    </div>
+
+    <!-- Titles -->
+    <div class="section">
+      <div class="section-title">Titles</div>
+      <div id="titles-list" style="display:flex;flex-wrap:wrap;gap:8px">
+        <!-- populated by JS -->
+      </div>
+    </div>
+
+    <!-- Star Shop (own profile only) -->
+    <div id="star-shop-section" style="display:none">
+      <div class="divider"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+        <h2 style="font-family:var(--font-display);font-size:22px;font-weight:600">⭐ Star Shop</h2>
+        <span class="star-badge">⭐ <span id="shop-star-count">0</span> stars</span>
+      </div>
+      <div id="shop-titles-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:28px">
+        <!-- Populated by JS -->
+      </div>
+      <div class="card card-sm" style="border:2px dashed var(--border)">
+        <div style="font-weight:600;margin-bottom:6px">📣 Buy a Shoutout — 30 ⭐</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">Send a short message to everyone on the site for 10 seconds.</p>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="shoutout-msg-input" placeholder="Your message (max 80 chars)" maxlength="80" style="flex:1">
+          <button class="btn btn-primary btn-sm" onclick="buyShoutout()">Buy (30 ⭐)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!--  AUTH MODAL                                                   -->
+<!-- ============================================================ -->
+<div class="modal-overlay" id="auth-modal" onclick="closeAuthIfOutside(event)">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeAuthModal()">✕</button>
+    <div id="auth-modal-login">
+      <h2 class="modal-title">Welcome back 👋</h2>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Username or User ID</label>
+          <input class="form-input" id="login-username" placeholder="e.g. CuriousSam or U100001">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" type="password" id="login-password" placeholder="Your password">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Log in</button>
+        <p style="text-align:center;font-size:13px;color:var(--text-muted)">Don't have an account? <a onclick="switchAuthMode('signup')" style="cursor:pointer">Sign up</a></p>
+      </div>
+    </div>
+    <div id="auth-modal-signup" style="display:none">
+      <h2 class="modal-title">Create account ✨</h2>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-input" id="signup-username" placeholder="Choose a display name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-input" type="password" id="signup-password" placeholder="Create a password">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirm Password</label>
+          <input class="form-input" type="password" id="signup-password2" placeholder="Repeat password">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="doSignup()">Create account</button>
+        <p style="text-align:center;font-size:13px;color:var(--text-muted)">Already have one? <a onclick="switchAuthMode('login')" style="cursor:pointer">Log in</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT POLL MODAL -->
+<div class="modal-overlay" id="edit-poll-modal" onclick="closeEditIfOutside(event)">
+  <div class="modal" style="position:relative">
+    <button class="modal-close" onclick="closeEditPollModal()">✕</button>
+    <h2 class="modal-title">Edit Poll</h2>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div id="edit-preresponse-fields" style="display:flex;flex-direction:column;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Question</label>
+          <input class="form-input" id="edit-question" maxlength="50">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Categories</label>
+        <div class="categories-wrap" id="edit-cats" style="margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px">
+          <input class="form-input" id="edit-cat-input" placeholder="Add category...">
+          <button class="btn btn-secondary btn-sm" onclick="addEditCat()">Add</button>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveEditPoll()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  STATE
+// ============================================================
+const STATE = {
+  currentUser: null,       // null = guest
+  currentPage: 'home',
+  prevPage: 'browse',
+  currentPollId: null,
+  createFormat: 'choice',
+  createChoices: ['','',''],
+  createCategories: [],
+  browseSortBy: 'popular',
+  browseActiveCategories: [],
+  browseSearchText: '',
+  browseResultPage: 1,
+  recentOffset: 0,
+  myPollsVisible: false,
+  editingPollId: null,
+  settings: {
+    darkMode: false,
+    showAnonPolls: true,
+    hideProfile: false,
+  }
+};
+
+// ============================================================
+//  SAMPLE DATA  (replace with Supabase calls later)
+// ============================================================
+const ALL_CATEGORIES = [
+  'Life','Food','Music','Culture','Sports','Tech','Science',
+  'Personal','Fun','Politics','Gaming','Movies','Books','Travel',
+  'Fashion','Health','Pets','Nature','Education','Random'
+];
+
+const SAMPLE_POLLS = [];
+
+const TITLES_SHOP = [
+  {id:'t1',name:'New Poller',cost:0,tier:'c',desc:'Just getting started',emoji:'🌱'},
+  {id:'t2',name:'Curious Mind',cost:10,tier:'c',desc:'Asked a few questions',emoji:'🤔'},
+  {id:'t3',name:'Poll Enthusiast',cost:25,tier:'b',desc:'A regular contributor',emoji:'📋'},
+  {id:'t4',name:'Poll Goblin',cost:40,tier:'b',desc:'Unstoppable. Unhinged.',emoji:'👺'},
+  {id:'t5',name:'Star Collector',cost:60,tier:'b',desc:'Amassed a stellar fortune',emoji:'⭐'},
+  {id:'t6',name:'Insight Oracle',cost:80,tier:'a',desc:'Sees patterns others miss',emoji:'🔮'},
+  {id:'t7',name:'Data Wizard',cost:100,tier:'a',desc:'Turns answers into wisdom',emoji:'🧙'},
+  {id:'t8',name:'The Inquisitor',cost:150,tier:'a',desc:'No question left unasked',emoji:'🕵️'},
+  {id:'t9',name:'Grand Pollster',cost:200,tier:'s',desc:'Legendary. Iconic. Unstoppable.',emoji:'👑'},
+  {id:'t10',name:'Chaos Agent',cost:50,tier:'b',desc:'Asks the unaskable',emoji:'🌪️'},
+  {id:'t11',name:'Silent Observer',cost:30,tier:'c',desc:'Watches. Never creates.',emoji:'👁️'},
+  {id:'t12',name:'Contrarian',cost:45,tier:'b',desc:'Always picks the other option',emoji:'😈'},
+];
+
+const SAMPLE_COMMENTS = [];
+
+const SAMPLE_SHOUTOUTS = [];
+
+// Poll fill state (localStorage key: pollster_fills)
+function getFilledPolls(){
+  try{return JSON.parse(localStorage.getItem('pollster_fills')||'{}')}catch{return{}}
+}
+function markPollFilled(id,answer){
+  const f=getFilledPolls();f[id]=answer;
+  try{localStorage.setItem('pollster_fills',JSON.stringify(f))}catch{}
+}
+function hasFilled(id){return getFilledPolls()[id]!==undefined}
+
+// Guest poll count (localStorage)
+function getGuestPollCount(){
+  try{
+    const d=JSON.parse(localStorage.getItem('pollster_guest_polls')||'{"date":"","count":0}');
+    const today=new Date().toDateString();
+    if(d.date!==today) return 0;
+    return d.count||0;
+  }catch{return 0}
+}
+function incGuestPollCount(){
+  const today=new Date().toDateString();
+  const count=getGuestPollCount()+1;
+  try{localStorage.setItem('pollster_guest_polls',JSON.stringify({date:today,count}))}catch{}
+}
+
+// Settings persistence
+function loadSettings(){
+  try{
+    const s=JSON.parse(localStorage.getItem('pollster_settings')||'{}');
+    if(s.darkMode!==undefined) STATE.settings.darkMode=s.darkMode;
+    if(s.showAnonPolls!==undefined) STATE.settings.showAnonPolls=s.showAnonPolls;
+    if(s.hideProfile!==undefined) STATE.settings.hideProfile=s.hideProfile;
+  }catch{}
+}
+function saveSettings(){
+  try{localStorage.setItem('pollster_settings',JSON.stringify(STATE.settings))}catch{}
+}
+function saveSetting(key,val){
+  STATE.settings[key]=val;saveSettings();
+}
+
+// ============================================================
+//  NAVIGATION
+// ============================================================
+function showPage(name){
+  if(name==='community'&&STATE.settings.hideProfile) return;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el=document.getElementById('page-'+name);
+  if(el) el.classList.add('active');
+  STATE.prevPage=STATE.currentPage;
+  STATE.currentPage=name;
+  document.querySelectorAll('.nav-link[data-page]').forEach(l=>{
+    l.classList.toggle('active',l.dataset.page===name);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(name==='browse') initBrowse();
+  if(name==='profile') renderProfile(STATE.currentUser);
+  if(name==='settings') syncSettingsUI();
+  if(name==='community') initCommunity();
+  if(name==='create') initCreate();
+}
+
+function goBackToBrowse(){
+  showPage('browse');
+}
+
+// ============================================================
+//  AUTH (stub — wire to Supabase)
+// ============================================================
+function openAuthModal(mode){
+  document.getElementById('auth-modal').classList.add('show');
+  switchAuthMode(mode||'login');
+}
+function closeAuthModal(){
+  document.getElementById('auth-modal').classList.remove('show');
+}
+function closeAuthIfOutside(e){
+  if(e.target.id==='auth-modal') closeAuthModal();
+}
+function switchAuthMode(mode){
+  document.getElementById('auth-modal-login').style.display=mode==='login'?'':'none';
+  document.getElementById('auth-modal-signup').style.display=mode==='signup'?'':'none';
+}
+
+function doLogin(){
+  // STUB — replace with Supabase auth
+  const username=document.getElementById('login-username').value.trim();
+  if(!username){alert('Please enter a username.');return;}
+  simulateLogin({username:username||'User',uid:'U100001',stars:47,starsAllTime:120,responded:32,created:8,activeTitle:'t5',unlockedTitles:['t1','t2','t3','t5']});
+  closeAuthModal();
+}
+function doSignup(){
+  // STUB — replace with Supabase auth
+  const username=document.getElementById('signup-username').value.trim();
+  const pw=document.getElementById('signup-password').value;
+  const pw2=document.getElementById('signup-password2').value;
+  if(!username){alert('Please enter a username.');return;}
+  if(pw!==pw2){alert('Passwords do not match.');return;}
+  if(pw.length<6){alert('Password must be at least 6 characters.');return;}
+  simulateLogin({username,uid:'U100001',stars:0,starsAllTime:0,responded:0,created:0,activeTitle:'t1',unlockedTitles:['t1']});
+  closeAuthModal();
+}
+function simulateLogin(user){
+  STATE.currentUser=user;
+  updateNavForAuth();
+}
+function signOut(){
+  STATE.currentUser=null;
+  updateNavForAuth();
+  showPage('home');
+}
+function updateNavForAuth(){
+  const loggedIn=!!STATE.currentUser;
+  document.getElementById('nav-login-btn').style.display=loggedIn?'none':'';
+  document.getElementById('nav-signup-btn').style.display=loggedIn?'none':'';
+  document.getElementById('nav-profile-btn').style.display=loggedIn?'':'none';
+  document.getElementById('nav-stars').style.display=loggedIn?'':'none';
+  document.getElementById('nav-community').style.display=(loggedIn&&!STATE.settings.hideProfile)?'':'none';
+  if(loggedIn){
+    document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
+    document.getElementById('nav-avatar').textContent=STATE.currentUser.username.charAt(0).toUpperCase();
+  }
+  // show anon toggle only when signed in
+  document.getElementById('anon-polls-toggle-wrap').style.display=loggedIn?'':'none';
+}
+
+// ============================================================
+//  BROWSE
+// ============================================================
+function initBrowse(){
+  renderSuggestedCategories();
+  renderRecentPolls(true);
+}
+
+const SUGGESTED_CATS=['Life','Food','Music','Tech','Sports','Fun','Culture','Personal'];
+function renderSuggestedCategories(){
+  const wrap=document.getElementById('suggested-categories');
+  if(!wrap)return;
+  wrap.innerHTML='';
+  SUGGESTED_CATS.forEach(cat=>{
+    if(STATE.browseActiveCategories.includes(cat)) return;
+    const chip=document.createElement('button');
+    chip.className='category-chip';
+    chip.textContent=cat;
+    chip.onclick=()=>addBrowseCat(cat);
+    wrap.appendChild(chip);
+  });
+}
+function addBrowseCat(cat){
+  if(STATE.browseActiveCategories.includes(cat)||STATE.browseActiveCategories.length>=6) return;
+  STATE.browseActiveCategories.push(cat);
+  renderActiveBrowseCats();
+  renderSuggestedCategories();
+  doBrowseSearch();
+}
+function removeBrowseCat(cat){
+  STATE.browseActiveCategories=STATE.browseActiveCategories.filter(c=>c!==cat);
+  renderActiveBrowseCats();
+  renderSuggestedCategories();
+  doBrowseSearch();
+}
+function renderActiveBrowseCats(){
+  const wrap=document.getElementById('active-categories');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  STATE.browseActiveCategories.forEach(cat=>{
+    const chip=document.createElement('span');
+    chip.className='category-chip active';
+    chip.innerHTML=`${cat} <span class="remove" onclick="removeBrowseCat('${cat}')">×</span>`;
+    wrap.appendChild(chip);
+  });
+}
+function setSort(sort,btn){
+  STATE.browseSortBy=sort;
+  document.querySelectorAll('.sort-tab').forEach(t=>t.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  doBrowseSearch();
+  renderRecentPolls(true);
+}
+function doBrowseSearch(){
+  const q=document.getElementById('browse-text-search')?.value.trim().toLowerCase()||'';
+  STATE.browseSearchText=q;
+  const cats=STATE.browseActiveCategories;
+  if(!q&&!cats.length){
+    document.getElementById('browse-search-results').style.display='none';
+    return;
+  }
+  let results=SAMPLE_POLLS.filter(p=>{
+    const matchQ=!q||p.title.toLowerCase().includes(q);
+    const matchCat=!cats.length||cats.some(c=>p.categories.includes(c));
+    return matchQ&&matchCat;
+  });
+  results=sortPolls(results);
+  const perPage=10, page=1, total=results.length;
+  const pagePolls=results.slice(0,perPage);
+  document.getElementById('browse-search-results').style.display='';
+  document.getElementById('search-results-label').textContent=`${total} result${total!==1?'s':''}`;
+  renderPollGrid(pagePolls,'search-results-grid');
+  renderPagination(total,perPage,page,'search-pagination');
+}
+function searchById(){
+  const id=document.getElementById('browse-id-search')?.value.trim().toUpperCase();
+  if(!id) return;
+  const poll=SAMPLE_POLLS.find(p=>p.id===id);
+  if(poll) openPoll(poll.id);
+  else alert(`No poll found with ID ${id}`);
+}
+function sortPolls(polls){
+  const s=STATE.browseSortBy;
+  return [...polls].sort((a,b)=>{
+    if(s==='popular') return b.responses-a.responses;
+    if(s==='newest') return new Date(b.created)-new Date(a.created);
+    if(s==='oldest') return new Date(a.created)-new Date(b.created);
+    if(s==='az') return a.title.localeCompare(b.title);
+    if(s==='za') return b.title.localeCompare(a.title);
+    return 0;
+  });
+}
+function renderRecentPolls(reset){
+  if(reset) STATE.recentOffset=0;
+  const sorted=sortPolls(SAMPLE_POLLS);
+  const chunk=sorted.slice(0,STATE.recentOffset+30);
+  renderPollGrid(chunk,'recent-polls-grid');
+  STATE.recentOffset=chunk.length;
+  const loadMore=document.getElementById('recent-load-more');
+  if(loadMore) loadMore.style.display=STATE.recentOffset>=SAMPLE_POLLS.length?'none':'';
+}
+function loadMoreRecent(){
+  STATE.recentOffset+=30;
+  renderRecentPolls(false);
+}
+function renderPollGrid(polls,containerId){
+  const grid=document.getElementById(containerId);
+  if(!grid) return;
+  if(!polls.length){
+    grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div><div class="empty-title">No polls found</div><div class="empty-desc">Try different search terms or categories</div></div>';
+    return;
+  }
+  grid.innerHTML='';
+  polls.forEach(poll=>{
+    const card=document.createElement('div');
+    card.className='poll-card';
+    card.onclick=()=>openPoll(poll.id);
+    const cats=poll.categories.map(c=>`<span class="category-chip" style="cursor:default;pointer-events:none">${c}</span>`).join('');
+    card.innerHTML=`
+      <span class="poll-card-type ${poll.type==='choice'?'type-choice':'type-answer'}">${poll.type==='choice'?'Multiple choice':'Short answer'}</span>
+      <div class="poll-card-title">${poll.title}</div>
+      <div class="categories-wrap" style="gap:4px">${cats}</div>
+      <div class="poll-card-meta">
+        <span>👤 ${poll.author}</span>
+        <span>🗳️ ${poll.responses.toLocaleString()}</span>
+        <span>${formatDate(poll.created)}</span>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+function renderPagination(total,perPage,current,containerId){
+  const container=document.getElementById(containerId);
+  if(!container) return;
+  const pages=Math.ceil(total/perPage);
+  if(pages<=1){container.innerHTML='';return;}
+  let html='';
+  for(let i=1;i<=pages;i++){
+    html+=`<button class="page-btn${i===current?' active':''}" onclick="goToPage(${i})">${i}</button>`;
+  }
+  container.innerHTML=html;
+}
+function goToPage(n){/* Implement pagination with real data */}
+
+// ============================================================
+//  POLL PAGE
+// ============================================================
+function openPoll(id){
+  STATE.prevPage='browse';
+  STATE.currentPollId=id;
+  const poll=SAMPLE_POLLS.find(p=>p.id===id)||{id,title:'Poll not found',type:'choice',author:'Unknown',categories:[],responses:0,created:'',choices:[]};
+  document.getElementById('poll-page-id').textContent=poll.id;
+  document.getElementById('poll-page-title').textContent=poll.title;
+  document.getElementById('poll-page-author').textContent=poll.author;
+  document.getElementById('poll-page-date').textContent=`Created: ${formatDate(poll.created)}`;
+  document.getElementById('poll-page-responses').textContent=poll.responses.toLocaleString();
+  const typeEl=document.getElementById('poll-page-type');
+  typeEl.textContent=poll.type==='choice'?'Multiple choice':'Short answer';
+  typeEl.className=`poll-card-type ${poll.type==='choice'?'type-choice':'type-answer'}`;
+  const catsWrap=document.getElementById('poll-page-cats');
+  catsWrap.innerHTML=poll.categories.map(c=>`<span class="category-chip" style="cursor:default;pointer-events:none">${c}</span>`).join('');
+  renderPollAnswerArea(poll);
+  const isCreator=STATE.currentUser&&STATE.currentUser.uid&&poll.authorId===STATE.currentUser.uid;
+  document.getElementById('poll-creator-controls').style.display=isCreator?'':'none';
+  showPage('poll');
+}
+function renderPollAnswerArea(poll){
+  const area=document.getElementById('poll-answer-area');
+  const filled=hasFilled(poll.id);
+  const filledAnswer=getFilledPolls()[poll.id];
+  if(poll.type==='choice'){
+    const total=poll.choices.reduce((s,c)=>s+c.votes,0)||1;
+    if(filled){
+      area.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:4px">✅ You answered. Here are the results:</p>
+        ${poll.choices.map(c=>{
+          const pct=Math.round(c.votes/total*100);
+          const selected=filledAnswer===c.text;
+          return `<div class="choice-option${selected?' selected':''}" style="cursor:default">
+            <div class="choice-radio">${selected?'':''}${selected?'<span style="width:6px;height:6px;border-radius:50%;background:#fff;display:block"></span>':''}</div>
+            <span style="flex:1;font-size:14px">${c.text}</span>
+            <div class="choice-bar" style="max-width:120px"><div class="choice-bar-fill" style="width:${pct}%"></div></div>
+            <span class="choice-pct">${pct}%</span>
+          </div>`;
+        }).join('')}
+      </div>`;
+    } else {
+      area.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
+        <p style="font-size:14px;color:var(--text-secondary);margin-bottom:4px">Choose one:</p>
+        ${poll.choices.map(c=>`
+          <div class="choice-option" onclick="selectChoice(this,'${poll.id}','${c.text.replace(/'/g,"\\'")}')">
+            <div class="choice-radio"></div>
+            <span style="flex:1;font-size:14px">${c.text}</span>
+          </div>`).join('')}
+        <button class="btn btn-primary" onclick="submitChoice('${poll.id}')" style="margin-top:8px" id="submit-choice-btn" disabled>Submit</button>
+      </div>`;
+    }
+  } else {
+    const answers=poll.answers||[];
+    const canSeeAnswers=poll.visibleAnswers;
+    if(filled&&canSeeAnswers){
+      area.innerHTML=`<div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:12px">✅ You answered. Here's what others said:</p>
+        ${answers.map(a=>`<div style="padding:10px 14px;background:var(--bg-secondary);border-radius:var(--radius-md);margin-bottom:8px;font-size:14px">${a}</div>`).join('')}
+        ${answers.length===0?'<p style="color:var(--text-muted);font-size:13px">No answers yet.</p>':''}
+      </div>`;
+    } else if(filled&&!canSeeAnswers){
+      area.innerHTML=`<div class="alert alert-info">✅ You submitted your answer. The creator has kept responses private.</div>`;
+    } else {
+      area.innerHTML=`<div style="display:flex;flex-direction:column;gap:10px">
+        <textarea class="form-input" id="short-answer-input" placeholder="Type your answer here..." maxlength="80"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:12px;color:var(--text-muted)">${poll.responses} answers submitted</span>
+          <button class="btn btn-primary btn-sm" onclick="submitShortAnswer('${poll.id}')">Submit</button>
+        </div>
+      </div>`;
+    }
+  }
+}
+let selectedChoiceText=null;
+function selectChoice(el,pollId,text){
+  selectedChoiceText=text;
+  document.querySelectorAll('#poll-answer-area .choice-option').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  const btn=document.getElementById('submit-choice-btn');
+  if(btn) btn.disabled=false;
+}
+function submitChoice(pollId){
+  if(!selectedChoiceText) return;
+  markPollFilled(pollId,selectedChoiceText);
+  if(STATE.currentUser){
+    STATE.currentUser.stars+=1;
+    STATE.currentUser.starsAllTime+=1;
+    STATE.currentUser.responded+=1;
+    document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
+  }
+  const poll=SAMPLE_POLLS.find(p=>p.id===pollId);
+  if(poll){
+    const c=poll.choices.find(c=>c.text===selectedChoiceText);
+    if(c) c.votes++;
+    poll.responses++;
+    renderPollAnswerArea(poll);
+    document.getElementById('poll-page-responses').textContent=poll.responses.toLocaleString();
+  }
+  selectedChoiceText=null;
+}
+function submitShortAnswer(pollId){
+  const input=document.getElementById('short-answer-input');
+  const answer=input?.value.trim();
+  if(!answer) return;
+  markPollFilled(pollId,answer);
+  if(STATE.currentUser){
+    STATE.currentUser.stars+=1;
+    STATE.currentUser.starsAllTime+=1;
+    STATE.currentUser.responded+=1;
+    document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
+  }
+  const poll=SAMPLE_POLLS.find(p=>p.id===pollId);
+  if(poll){
+    poll.responses++;
+    if(!poll.answers) poll.answers=[];
+    poll.answers.push(answer);
+    renderPollAnswerArea(poll);
+    document.getElementById('poll-page-responses').textContent=poll.responses.toLocaleString();
+  }
+}
+
+// Edit/Delete poll
+function openEditPollModal(){
+  const poll=SAMPLE_POLLS.find(p=>p.id===STATE.currentPollId);
+  if(!poll) return;
+  STATE.editingPollId=poll.id;
+  document.getElementById('edit-question').value=poll.title;
+  const hasResponses=poll.responses>0;
+  document.getElementById('edit-preresponse-fields').style.display=hasResponses?'none':'';
+  renderEditCats(poll.categories);
+  document.getElementById('edit-poll-modal').classList.add('show');
+}
+function renderEditCats(cats){
+  const wrap=document.getElementById('edit-cats');
+  wrap.innerHTML='';
+  cats.forEach(cat=>{
+    const chip=document.createElement('span');
+    chip.className='category-chip active';
+    chip.innerHTML=`${cat} <span class="remove" onclick="removeEditCat('${cat}')">×</span>`;
+    wrap.appendChild(chip);
+  });
+}
+function addEditCat(){
+  const input=document.getElementById('edit-cat-input');
+  const val=input.value.trim();
+  if(!val) return;
+  const poll=SAMPLE_POLLS.find(p=>p.id===STATE.editingPollId);
+  if(!poll||poll.categories.length>=8) return;
+  if(!poll.categories.includes(val)) poll.categories.push(val);
+  renderEditCats(poll.categories);
+  input.value='';
+}
+function removeEditCat(cat){
+  const poll=SAMPLE_POLLS.find(p=>p.id===STATE.editingPollId);
+  if(poll) poll.categories=poll.categories.filter(c=>c!==cat);
+  renderEditCats(poll.categories);
+}
+function saveEditPoll(){
+  const poll=SAMPLE_POLLS.find(p=>p.id===STATE.editingPollId);
+  if(!poll) return;
+  if(poll.responses===0){
+    const q=document.getElementById('edit-question').value.trim();
+    if(q) poll.title=q;
+  }
+  closeEditPollModal();
+  openPoll(poll.id);
+}
+function closeEditPollModal(){
+  document.getElementById('edit-poll-modal').classList.remove('show');
+}
+function closeEditIfOutside(e){if(e.target.id==='edit-poll-modal') closeEditPollModal();}
+function deletePoll(){
+  if(!confirm('Delete this poll? This cannot be undone.')) return;
+  const idx=SAMPLE_POLLS.findIndex(p=>p.id===STATE.currentPollId);
+  if(idx>-1) SAMPLE_POLLS.splice(idx,1);
+  showPage('browse');
+}
+
+// ============================================================
+//  CREATE
+// ============================================================
+function initCreate(){
+  STATE.createChoices=['','',''];
+  STATE.createCategories=[];
+  document.getElementById('create-form-wrap').style.display='';
+  document.getElementById('create-success').style.display='none';
+  document.getElementById('create-question').value='';
+  document.getElementById('create-char-count').textContent='0 / 50';
+  setFormat('choice');
+  renderChoiceList();
+  renderCreateCatSuggestions();
+  const guestWarn=document.getElementById('guest-poll-warn');
+  if(guestWarn) guestWarn.style.display=STATE.currentUser?'none':'';
+}
+function setFormat(fmt){
+  STATE.createFormat=fmt;
+  document.getElementById('fmt-choice-btn').classList.toggle('active',fmt==='choice');
+  document.getElementById('fmt-answer-btn').classList.toggle('active',fmt==='answer');
+  document.getElementById('choice-options-section').style.display=fmt==='choice'?'':'none';
+  document.getElementById('answer-options-section').style.display=fmt==='answer'?'':'none';
+}
+function updateCharCount(){
+  const v=document.getElementById('create-question')?.value||'';
+  document.getElementById('create-char-count').textContent=`${v.length} / 50`;
+}
+function renderChoiceList(){
+  const list=document.getElementById('choice-list');
+  if(!list) return;
+  list.innerHTML='';
+  STATE.createChoices.forEach((ch,i)=>{
+    const row=document.createElement('div');
+    row.style.cssText='display:flex;gap:8px;align-items:center';
+    row.innerHTML=`<span style="font-size:13px;color:var(--text-muted);min-width:18px">${i+1}.</span>
+      <input class="form-input" value="${ch}" placeholder="Choice ${i+1}" style="flex:1" oninput="updateChoice(${i},this.value)" maxlength="60">
+      ${STATE.createChoices.length>3?`<button class="btn btn-ghost btn-sm" onclick="removeChoice(${i})" style="color:var(--danger)">✕</button>`:''}`;
+    list.appendChild(row);
+  });
+  document.getElementById('add-choice-btn').style.display=STATE.createChoices.length>=8?'none':'';
+}
+function updateChoice(i,val){STATE.createChoices[i]=val;}
+function addChoice(){
+  if(STATE.createChoices.length>=8) return;
+  STATE.createChoices.push('');
+  renderChoiceList();
+}
+function removeChoice(i){
+  if(STATE.createChoices.length<=3) return;
+  STATE.createChoices.splice(i,1);
+  renderChoiceList();
+}
+function renderCreateCatSuggestions(){
+  const wrap=document.getElementById('create-cat-suggestions');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  ALL_CATEGORIES.filter(c=>!STATE.createCategories.includes(c)).slice(0,12).forEach(cat=>{
+    const chip=document.createElement('button');
+    chip.className='category-chip';
+    chip.textContent=cat;
+    chip.onclick=()=>addCreateCat(cat);
+    wrap.appendChild(chip);
+  });
+}
+function addCreateCat(cat){
+  if(STATE.createCategories.includes(cat)||STATE.createCategories.length>=8) return;
+  STATE.createCategories.push(cat);
+  renderSelectedCreateCats();
+  renderCreateCatSuggestions();
+}
+function removeCreateCat(cat){
+  STATE.createCategories=STATE.createCategories.filter(c=>c!==cat);
+  renderSelectedCreateCats();
+  renderCreateCatSuggestions();
+}
+function renderSelectedCreateCats(){
+  const wrap=document.getElementById('create-selected-cats');
+  if(!wrap) return;
+  wrap.innerHTML='';
+  STATE.createCategories.forEach(cat=>{
+    const chip=document.createElement('span');
+    chip.className='category-chip active';
+    chip.innerHTML=`${cat} <span class="remove" onclick="removeCreateCat('${cat}')">×</span>`;
+    wrap.appendChild(chip);
+  });
+}
+function addCategory(){
+  const input=document.getElementById('create-cat-input');
+  const val=input.value.trim();
+  if(!val) return;
+  addCreateCat(val);
+  if(!ALL_CATEGORIES.includes(val)) ALL_CATEGORIES.push(val);
+  input.value='';
+}
+function submitPoll(){
+  const question=document.getElementById('create-question')?.value.trim();
+  if(!question){alert('Please enter a question.');return;}
+  if(STATE.createFormat==='choice'){
+    const validChoices=STATE.createChoices.filter(c=>c.trim());
+    if(validChoices.length<3){alert('Please add at least 3 choices.');return;}
+  }
+  if(!STATE.currentUser){
+    const count=getGuestPollCount();
+    if(count>=3){alert('Guest limit: 3 polls per day. Sign up for unlimited!');return;}
+    incGuestPollCount();
+  }
+  const newId='P'+(100000+SAMPLE_POLLS.length+1);
+  const newPoll={
+    id:newId,
+    title:question,
+    author:STATE.currentUser?STATE.currentUser.username:'Guest',
+    authorId:STATE.currentUser?STATE.currentUser.uid:null,
+    type:STATE.createFormat,
+    categories:[...STATE.createCategories],
+    responses:0,
+    created:new Date().toISOString().split('T')[0],
+  };
+  if(STATE.createFormat==='choice'){
+    newPoll.choices=STATE.createChoices.filter(c=>c.trim()).map(c=>({text:c,votes:0}));
+  } else {
+    newPoll.visibleAnswers=document.getElementById('answer-visible-toggle')?.checked??true;
+    newPoll.answers=[];
+  }
+  SAMPLE_POLLS.unshift(newPoll);
+  if(STATE.currentUser){
+    STATE.currentUser.stars+=2;
+    STATE.currentUser.starsAllTime+=2;
+    STATE.currentUser.created+=1;
+    document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
+  }
+  document.getElementById('new-poll-id').textContent=newId;
+  document.getElementById('create-form-wrap').style.display='none';
+  document.getElementById('create-success').style.display='';
+  STATE.currentPollId=newId;
+  // 30s delay before showing in recent feed (handled by setting created to future for demo)
+}
+function resetCreateForm(){initCreate();}
+function goToNewPoll(){openPoll(STATE.currentPollId);}
+function openSamplePoll(i){openPoll(SAMPLE_POLLS[i].id);}
+
+// ============================================================
+//  COMMUNITY
+// ============================================================
+function initCommunity(){
+  if(STATE.settings.hideProfile){showPage('home');return;}
+  renderCommunityComments();
+  renderShoutouts();
+  const commentForm=document.getElementById('community-comment-form');
+  const locked=document.getElementById('community-locked');
+  if(commentForm&&locked){
+    commentForm.style.display=STATE.currentUser?'':'none';
+    locked.style.display=STATE.currentUser?'none':'';
+  }
+  if(STATE.currentUser){
+    const avatar=document.getElementById('comment-avatar');
+    if(avatar) avatar.textContent=STATE.currentUser.username.charAt(0).toUpperCase();
+  }
+}
+function renderCommunityComments(){
+  const list=document.getElementById('comments-list');
+  if(!list) return;
+  list.innerHTML='';
+  SAMPLE_COMMENTS.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='card card-sm';
+    div.style.cssText='display:flex;gap:10px;align-items:flex-start';
+    div.innerHTML=`<div class="avatar avatar-sm" style="width:32px;height:32px;font-size:13px;flex-shrink:0">${c.user.charAt(0)}</div>
+      <div><div style="font-weight:500;font-size:14px;margin-bottom:2px">${c.user}</div>
+      <div style="font-size:14px;color:var(--text-secondary)">${c.text}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:4px">${c.time}</div></div>`;
+    list.appendChild(div);
+  });
+}
+function submitComment(){
+  const input=document.getElementById('comment-input');
+  const text=input?.value.trim();
+  if(!text||!STATE.currentUser) return;
+  SAMPLE_COMMENTS.unshift({user:STATE.currentUser.username,userId:STATE.currentUser.uid,text,time:'just now'});
+  input.value='';
+  renderCommunityComments();
+}
+function renderShoutouts(){
+  const list=document.getElementById('shoutouts-list');
+  if(!list) return;
+  list.innerHTML='';
+  SAMPLE_SHOUTOUTS.forEach(s=>{
+    const div=document.createElement('div');
+    div.className='card card-sm';
+    div.innerHTML=`<div style="display:flex;gap:8px;align-items:flex-start"><span style="font-size:16px">📣</span><div><span style="font-weight:600;font-size:14px">${s.user}</span><span style="color:var(--text-secondary);font-size:14px"> — ${s.msg}</span><div style="font-size:12px;color:var(--text-muted);margin-top:4px">${s.time}</div></div></div>`;
+    list.appendChild(div);
+  });
+}
+function searchUser(){
+  const id=document.getElementById('community-user-search')?.value.trim().toUpperCase();
+  const result=document.getElementById('community-user-result');
+  if(!id||!result) return;
+  if(STATE.settings.hideProfile){result.innerHTML='<div class="alert alert-warn">Profile visibility is disabled.</div>';return;}
+  // Stub user lookup
+  if(id==='U100001'&&STATE.currentUser){
+    result.innerHTML=`<div class="card card-sm" style="cursor:pointer" onclick="showPage('profile')">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar avatar-sm">${STATE.currentUser.username.charAt(0)}</div>
+        <div><div style="font-weight:600">${STATE.currentUser.username}</div><div style="font-size:12px;color:var(--text-muted)">${id}</div></div>
+      </div></div>`;
+  } else {
+    result.innerHTML=`<div class="alert alert-warn">No user found with ID ${id}</div>`;
+  }
+}
+
+// ============================================================
+//  SETTINGS
+// ============================================================
+function syncSettingsUI(){
+  document.getElementById('dark-mode-toggle').checked=STATE.settings.darkMode;
+  document.getElementById('anon-polls-toggle').checked=STATE.settings.showAnonPolls;
+  document.getElementById('hide-profile-toggle').checked=STATE.settings.hideProfile;
+  const signedIn=!!STATE.currentUser;
+  document.getElementById('settings-signed-out').style.display=signedIn?'none':'';
+  document.getElementById('settings-signed-in').style.display=signedIn?'':'none';
+  if(signedIn){
+    document.getElementById('settings-username').textContent=STATE.currentUser.username;
+    document.getElementById('settings-uid').textContent=STATE.currentUser.uid;
+    document.getElementById('settings-avatar').textContent=STATE.currentUser.username.charAt(0).toUpperCase();
+  }
+}
+function toggleDarkMode(cb){
+  STATE.settings.darkMode=cb.checked;
+  document.documentElement.setAttribute('data-theme',cb.checked?'dark':'light');
+  saveSettings();
+}
+function toggleHideProfile(cb){
+  STATE.settings.hideProfile=cb.checked;
+  saveSettings();
+  updateNavForAuth();
+}
+
+// ============================================================
+//  PROFILE
+// ============================================================
+function renderProfile(user){
+  if(!user){
+    // Show guest prompt
+    document.getElementById('profile-username').textContent='Guest';
+    document.getElementById('profile-uid').textContent='Not signed in';
+    document.getElementById('profile-avatar').textContent='G';
+    document.getElementById('profile-responded').textContent='—';
+    document.getElementById('profile-created').textContent='—';
+    document.getElementById('profile-stars-current').textContent='—';
+    document.getElementById('profile-stars-alltime').textContent='—';
+    document.getElementById('profile-active-title').textContent='';
+    document.getElementById('star-shop-section').style.display='none';
+    document.getElementById('titles-list').innerHTML='<p style="font-size:14px;color:var(--text-muted)"><a onclick="openAuthModal(\'signup\')" style="cursor:pointer">Sign up</a> to earn titles and track your stats.</p>';
+    document.getElementById('profile-own-controls').style.display='none';
+    return;
+  }
+  const u=user;
+  document.getElementById('profile-username').textContent=u.username;
+  document.getElementById('profile-uid').textContent=u.uid;
+  document.getElementById('profile-avatar').textContent=u.username.charAt(0).toUpperCase();
+  document.getElementById('profile-responded').textContent=u.responded;
+  document.getElementById('profile-created').textContent=u.created;
+  document.getElementById('profile-stars-current').textContent=`${u.stars} ⭐`;
+  document.getElementById('profile-stars-alltime').textContent=u.starsAllTime;
+  const activeT=TITLES_SHOP.find(t=>t.id===u.activeTitle);
+  const titleEl=document.getElementById('profile-active-title');
+  titleEl.textContent=activeT?`${activeT.emoji} ${activeT.name}`:'';
+  titleEl.className=`title-badge title-tier-${activeT?.tier||'c'}`;
+  document.getElementById('star-shop-section').style.display='';
+  document.getElementById('shop-star-count').textContent=u.stars;
+  renderTitlesList(u);
+  renderShopGrid(u);
+  renderMyPolls(u);
+}
+function renderTitlesList(u){
+  const list=document.getElementById('titles-list');
+  list.innerHTML='';
+  TITLES_SHOP.filter(t=>u.unlockedTitles?.includes(t.id)).forEach(t=>{
+    const badge=document.createElement('button');
+    badge.className=`title-badge title-tier-${t.tier}`;
+    badge.style.cssText='cursor:pointer;border:none;padding:5px 12px;font-size:13px';
+    badge.textContent=`${t.emoji} ${t.name}`;
+    badge.title=t.desc;
+    badge.onclick=()=>setActiveTitle(t.id);
+    if(t.id===u.activeTitle) badge.style.outline='2px solid var(--accent)';
+    list.appendChild(badge);
+  });
+}
+function setActiveTitle(id){
+  if(STATE.currentUser) STATE.currentUser.activeTitle=id;
+  renderProfile(STATE.currentUser);
+}
+function renderShopGrid(u){
+  const grid=document.getElementById('shop-titles-grid');
+  grid.innerHTML='';
+  TITLES_SHOP.forEach(t=>{
+    const owned=u.unlockedTitles?.includes(t.id);
+    const canAfford=u.stars>=t.cost;
+    const card=document.createElement('div');
+    card.className='card card-sm';
+    card.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:8px">
+      <span class="title-badge title-tier-${t.tier}">${t.emoji} ${t.name}</span>
+      ${owned?'<span style="font-size:12px;color:var(--success);font-weight:500">✓ Owned</span>':''}
+    </div>
+    <p style="font-size:13px;color:var(--text-secondary);margin-bottom:10px">${t.desc}</p>
+    ${t.cost===0?'<span style="font-size:12px;color:var(--text-muted)">Free — starter title</span>':
+      owned?`<button class="btn btn-sm" style="width:100%;background:var(--accent-glow);color:var(--accent)" onclick="setActiveTitle('${t.id}')">Set Active</button>`:
+      `<button class="btn btn-primary btn-sm" style="width:100%" onclick="buyTitle('${t.id}')" ${canAfford?'':'disabled'}>Buy — ${t.cost} ⭐</button>`}`;
+    grid.appendChild(card);
+  });
+}
+function buyTitle(id){
+  const u=STATE.currentUser;
+  const t=TITLES_SHOP.find(x=>x.id===id);
+  if(!u||!t||u.stars<t.cost) return;
+  u.stars-=t.cost;
+  if(!u.unlockedTitles) u.unlockedTitles=[];
+  u.unlockedTitles.push(id);
+  document.getElementById('nav-star-count').textContent=u.stars;
+  renderProfile(u);
+}
+function renderMyPolls(u){
+  const myPolls=SAMPLE_POLLS.filter(p=>p.authorId===u?.uid);
+  renderPollGrid(myPolls,'my-polls-grid');
+}
+function toggleMyPolls(){
+  STATE.myPollsVisible=!STATE.myPollsVisible;
+  document.getElementById('my-polls-list').style.display=STATE.myPollsVisible?'':'none';
+}
+
+// ============================================================
+//  SHOUTOUT SYSTEM
+// ============================================================
+function buyShoutout(){
+  const u=STATE.currentUser;
+  if(!u||u.stars<30){alert('You need 30 stars to buy a shoutout.');return;}
+  const msg=document.getElementById('shoutout-msg-input')?.value.trim();
+  if(!msg){alert('Please enter a message.');return;}
+  u.stars-=30;
+  document.getElementById('nav-star-count').textContent=u.stars;
+  document.getElementById('shop-star-count').textContent=u.stars;
+  document.getElementById('shoutout-msg-input').value='';
+  SAMPLE_SHOUTOUTS.unshift({user:u.username,msg,time:'just now'});
+  showShoutout(u.username,msg);
+}
+let shoutoutTimer=null;
+function showShoutout(from,msg){
+  document.getElementById('shoutout-from').textContent=from;
+  document.getElementById('shoutout-msg').textContent=` says: ${msg}`;
+  const banner=document.getElementById('shoutout-banner');
+  banner.classList.add('show');
+  clearTimeout(shoutoutTimer);
+  shoutoutTimer=setTimeout(closeShoutout,10000);
+}
+function closeShoutout(){
+  document.getElementById('shoutout-banner').classList.remove('show');
+}
+
+// ============================================================
+//  UTILITIES
+// ============================================================
+function formatDate(d){
+  if(!d) return '';
+  try{
+    return new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});
+  }catch{return d;}
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+(function init(){
+  loadSettings();
+  if(STATE.settings.darkMode){
+    document.documentElement.setAttribute('data-theme','dark');
+  }
+  // Render home sample polls
+  updateNavForAuth();
+
+})();
+</script>
+</body>
+</html>
