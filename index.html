@@ -1958,6 +1958,13 @@ async function doSearchPage(page){
   await Promise.all([loadTitles(),loadCategories()]);
   subscribeShoutouts();
   loadTrending();
+  // BARE TEST
+  fetch('https://ozvkgbftxxknyijstrvl.supabase.co/rest/v1/polls?select=id,title&limit=3', {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY
+    }
+  }).then(r=>r.json()).then(d=>console.log('BARE FETCH RESULT:', JSON.stringify(d))).catch(e=>console.error('BARE FETCH ERROR:', e));
   // TEMP DEBUG
   const {data:testData, error:testErr} = await sb.from('polls').select('*').limit(5);
   console.log('DIRECT POLL TEST:', JSON.stringify(testData), JSON.stringify(testErr));
