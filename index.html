@@ -1151,7 +1151,7 @@ function applySort(query){
 
 async function fetchPollsWithCategories(query){
   const {data,error,count}=await query;
-  if(error){console.error('Poll fetch error:',error);return{polls:[],count:0};}
+  if(error){console.error('Poll fetch error:',JSON.stringify(error));return{polls:[],count:0};}
   const polls=data||[];
   if(!polls.length) return{polls:[],count:count||0};
   // Attach categories
