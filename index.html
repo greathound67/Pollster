@@ -1034,15 +1034,18 @@ function updateNavForAuth(){
 }
 
 // Listen for auth state changes
+// Ignore INITIAL_SESSION — init() handles that to avoid a race condition
 sb.auth.onAuthStateChange(async (event,session)=>{
+  if(event==='INITIAL_SESSION') return;
   if(session?.user){
     STATE.currentUser=await loadUserProfile(session.user.id);
     updateNavForAuth();
     if(STATE.currentPage==='profile') renderProfile(STATE.currentUser);
     if(STATE.currentPage==='settings') syncSettingsUI();
-  } else {
+  } else if(event==='SIGNED_OUT'){
     STATE.currentUser=null;
     updateNavForAuth();
+    showPage('home');
   }
 });
 
@@ -1153,7 +1156,7 @@ async function renderRecentPolls(reset){
 
   let query=sb.from('polls_with_categories').select('*');
   query=applySort(query);
-  // Only show polls that have been featured (30s delay)
+  // Show all polls with a featured_at set
   query=query.not('featured_at','is',null);
   if(!STATE.settings.showAnonPolls&&STATE.currentUser) query=query.not('author_id','is',null);
   query=query.range(STATE.recentOffset, STATE.recentOffset+29);
@@ -1543,14 +1546,19 @@ async function submitPoll(){
     author_id:STATE.currentUser?STATE.currentUser.id:null,
     author_name:STATE.currentUser?STATE.currentUser.username:'Guest',
     visible_answers:STATE.createFormat==='answer'?(document.getElementById('answer-visible-toggle')?.checked??true):true,
-    featured_at: new Date(Date.now()+30000).toISOString() // 30s delay
+    featured_at: new Date().toISOString()
   };
+
+  // Debug: log what we're sending and current auth state
+  console.log('Submitting poll, user:', STATE.currentUser?.id||'guest', 'payload:', pollPayload);
 
   const {data:pollRow,error:pollErr}=await sb.from('polls').insert(pollPayload).select().single();
   if(pollErr){
     if(btn){btn.disabled=false;btn.textContent='Done! 🎉';}
-    alert('Error creating poll: '+pollErr.message);return;
+    console.error('Poll insert error:', pollErr);
+    alert('Error creating poll: '+pollErr.message+' (code: '+pollErr.code+')');return;
   }
+  console.log('Poll created:', pollRow.id);
 
   // Insert choices
   if(STATE.createFormat==='choice'){
@@ -1933,16 +1941,15 @@ async function doSearchPage(page){
 (async function init(){
   loadSettings();
   if(STATE.settings.darkMode) document.documentElement.setAttribute('data-theme','dark');
+  // Restore session FIRST before rendering nav so signed-in state is correct on load
+  const {data:{session}}=await sb.auth.getSession();
+  if(session?.user){
+    STATE.currentUser=await loadUserProfile(session.user.id);
+  }
   updateNavForAuth();
   await Promise.all([loadTitles(),loadCategories()]);
   subscribeShoutouts();
   loadTrending();
-  // Check for existing session
-  const {data:{session}}=await sb.auth.getSession();
-  if(session?.user){
-    STATE.currentUser=await loadUserProfile(session.user.id);
-    updateNavForAuth();
-  }
 })();
 </script>
 </body>
