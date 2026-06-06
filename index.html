@@ -1134,8 +1134,8 @@ async function doBrowseSearch(){
 async function searchById(){
   const id=document.getElementById('browse-id-search')?.value.trim().toUpperCase();
   if(!id) return;
-  const {data,error}=await sb.from('polls_with_categories').select('*').eq('id',id).single();
-  if(data) openPoll(data.id,data);
+  const {polls}=await fetchPollsWithCategories(sb.from('polls').select('*').eq('id',id));
+  if(polls.length) openPoll(polls[0].id,polls[0]);
   else alert(`No poll found with ID ${id}`);
 }
 
@@ -1149,27 +1149,40 @@ function applySort(query){
   return query;
 }
 
+async function fetchPollsWithCategories(query){
+  const {data,error,count}=await query;
+  if(error){console.error('Poll fetch error:',error);return{polls:[],count:0};}
+  const polls=data||[];
+  if(!polls.length) return{polls:[],count:count||0};
+  // Attach categories
+  const ids=polls.map(p=>p.id);
+  const {data:pcRows}=await sb.from('poll_categories').select('poll_id,categories(name)').in('poll_id',ids);
+  const catMap={};
+  (pcRows||[]).forEach(r=>{
+    if(!catMap[r.poll_id]) catMap[r.poll_id]=[];
+    if(r.categories?.name) catMap[r.poll_id].push(r.categories.name);
+  });
+  polls.forEach(p=>p.categories=catMap[p.id]||[]);
+  return{polls,count:count||0};
+}
+
 async function renderRecentPolls(reset){
   if(reset) STATE.recentOffset=0;
   const grid=document.getElementById('recent-polls-grid');
   if(reset&&grid) grid.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">⏳</div><div class="empty-title">Loading...</div></div>';
 
-  let query=sb.from('polls_with_categories').select('*');
+  let query=sb.from('polls').select('*');
   query=applySort(query);
-  // Show all polls with a featured_at set
-  query=query.not('featured_at','is',null);
   if(!STATE.settings.showAnonPolls&&STATE.currentUser) query=query.not('author_id','is',null);
   query=query.range(STATE.recentOffset, STATE.recentOffset+29);
 
-  const {data,error}=await query;
-  const polls=data||[];
+  const {polls}=await fetchPollsWithCategories(query);
 
   if(reset){
     renderPollGrid(polls,'recent-polls-grid');
   } else {
     polls.forEach(p=>{
-      const card=makePollCard(p);
-      document.getElementById('recent-polls-grid').appendChild(card);
+      document.getElementById('recent-polls-grid').appendChild(makePollCard(p));
     });
   }
   STATE.recentOffset+=polls.length;
@@ -1228,8 +1241,8 @@ async function openPoll(id, pollData){
   // Use passed data or fetch fresh
   let poll=pollData;
   if(!poll){
-    const {data}=await sb.from('polls_with_categories').select('*').eq('id',id).single();
-    poll=data;
+    const {polls}=await fetchPollsWithCategories(sb.from('polls').select('*').eq('id',id));
+    poll=polls[0]||null;
   }
   if(!poll){alert('Poll not found.');return;}
   STATE.currentPollData=poll;
@@ -1344,13 +1357,13 @@ async function submitChoice(pollId){
   }
   selectedChoiceId=null;
   // Refresh poll data
-  const {data}=await sb.from('polls_with_categories').select('*').eq('id',pollId).single();
-  if(data){
+  const {polls:refreshed}=await fetchPollsWithCategories(sb.from('polls').select('*').eq('id',pollId));
+  if(refreshed[0]){
     const {data:choices}=await sb.from('choices').select('*').eq('poll_id',pollId).order('position');
-    data.choices=choices||[];
-    STATE.currentPollData=data;
-    document.getElementById('poll-page-responses').textContent=(data.responses||0).toLocaleString();
-    renderPollAnswerArea(data);
+    refreshed[0].choices=choices||[];
+    STATE.currentPollData=refreshed[0];
+    document.getElementById('poll-page-responses').textContent=(refreshed[0].responses||0).toLocaleString();
+    renderPollAnswerArea(refreshed[0]);
   }
 }
 
@@ -1371,8 +1384,8 @@ async function submitShortAnswer(pollId){
     STATE.currentUser.stars+=1;
     document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
   }
-  const {data}=await sb.from('polls_with_categories').select('*').eq('id',pollId).single();
-  if(data){STATE.currentPollData=data;document.getElementById('poll-page-responses').textContent=(data.responses||0).toLocaleString();}
+  const {polls:refreshed2}=await fetchPollsWithCategories(sb.from('polls').select('*').eq('id',pollId));
+  if(refreshed2[0]){STATE.currentPollData=refreshed2[0];document.getElementById('poll-page-responses').textContent=(refreshed2[0].responses||0).toLocaleString();}
   renderPollAnswerArea(STATE.currentPollData);
 }
 
@@ -1546,19 +1559,18 @@ async function submitPoll(){
     author_id:STATE.currentUser?STATE.currentUser.id:null,
     author_name:STATE.currentUser?STATE.currentUser.username:'Guest',
     visible_answers:STATE.createFormat==='answer'?(document.getElementById('answer-visible-toggle')?.checked??true):true,
-    featured_at: new Date().toISOString()
+
   };
 
-  // Debug: log what we're sending and current auth state
-  console.log('Submitting poll, user:', STATE.currentUser?.id||'guest', 'payload:', pollPayload);
+
 
   const {data:pollRow,error:pollErr}=await sb.from('polls').insert(pollPayload).select().single();
   if(pollErr){
     if(btn){btn.disabled=false;btn.textContent='Done! 🎉';}
-    console.error('Poll insert error:', pollErr);
+  
     alert('Error creating poll: '+pollErr.message+' (code: '+pollErr.code+')');return;
   }
-  console.log('Poll created:', pollRow.id);
+
 
   // Insert choices
   if(STATE.createFormat==='choice'){
@@ -1816,8 +1828,8 @@ async function buyTitle(id){
 }
 
 async function renderMyPolls(u){
-  const {data}=await sb.from('polls_with_categories').select('*').eq('author_id',u.id).order('created_at',{ascending:false});
-  renderPollGrid(data||[],'my-polls-grid');
+  const {polls}=await fetchPollsWithCategories(sb.from('polls').select('*').eq('author_id',u.id).order('created_at',{ascending:false}));
+  renderPollGrid(polls,'my-polls-grid');
 }
 function toggleMyPolls(){
   STATE.myPollsVisible=!STATE.myPollsVisible;
@@ -1869,11 +1881,7 @@ function formatDate(d){
 async function loadTrending(){
   const wrap=document.getElementById('home-trending');
   if(!wrap) return;
-  const {data}=await sb.from('polls_with_categories').select('*')
-    .not('featured_at','is',null)
-    .order('responses',{ascending:false})
-    .limit(3);
-  const polls=data||[];
+  const {polls}=await fetchPollsWithCategories(sb.from('polls').select('*').order('responses',{ascending:false}).limit(3));
   // Remove the label div, keep it
   const label=wrap.querySelector('div:first-child');
   wrap.innerHTML='';
@@ -1926,15 +1934,14 @@ async function doSearchPage(page){
   const cats=STATE.browseActiveCategories;
   const perPage=10;
   const from=(page-1)*perPage;
-  let query=sb.from('polls_with_categories').select('*',{count:'exact'});
+  let query=sb.from('polls').select('*',{count:'exact'});
   if(q) query=query.ilike('title','%'+q+'%');
-  if(cats.length) query=query.overlaps('categories',cats);
   query=applySort(query);
   query=query.range(from,from+perPage-1);
-  const {data,count,error}=await query;
-  const results=data||[];
+  const {polls:results,count}=await fetchPollsWithCategories(query);
+  const filtered=cats.length?results.filter(p=>cats.some(c=>(p.categories||[]).includes(c))):results;
   document.getElementById('search-results-label').textContent=`${count||0} result${count!==1?'s':''}`;
-  renderPollGrid(results,'search-results-grid');
+  renderPollGrid(filtered,'search-results-grid');
   renderPagination(count||0,perPage,page,'search-pagination');
 }
 
