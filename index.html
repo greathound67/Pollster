@@ -437,11 +437,10 @@ select.form-input{cursor:pointer}
       <div class="section-title" id="search-results-label">Results</div>
       <div class="poll-grid" id="search-results-grid"></div>
       <div class="pagination" id="search-pagination"></div>
-      <div class="divider"></div>
     </div>
 
     <!-- Recent Feed -->
-    <div>
+    <div id="browse-recent-section">
       <p style="font-size:14px;color:var(--text-muted);margin-bottom:16px">…or just scroll down to see the most recent polls.</p>
       <div class="poll-grid" id="recent-polls-grid"></div>
       <div id="recent-load-more" style="text-align:center;padding:24px">
@@ -1138,6 +1137,13 @@ async function doLogin(){
   const fakeEmail=profile.username.toLowerCase().replace(/[^a-z0-9]/g,'_')+'@pollster.internal';
   const {data,error}=await sb.auth.signInWithPassword({email:fakeEmail,password:pw});
   if(error){alert('Incorrect password.');return;}
+  // Load profile and update UI immediately
+  if(data&&data.user){
+    STATE.currentUser=await loadUserProfile(data.user.id);
+    updateNavForAuth();
+    if(STATE.currentPage==='profile') renderProfile(STATE.currentUser);
+    if(STATE.currentPage==='settings') syncSettingsUI();
+  }
   closeAuthModal();
 }
 
@@ -1155,6 +1161,11 @@ async function doSignup(){
   const tempEmail=`${username.toLowerCase().replace(/[^a-z0-9]/g,'_')}@pollster.internal`;
   const {data,error}=await sb.auth.signUp({email:tempEmail,password:pw,options:{data:{username}}});
   if(error){alert('Signup failed: '+error.message);return;}
+  // Load profile and update UI immediately
+  if(data&&data.user){
+    STATE.currentUser=await loadUserProfile(data.user.id);
+    updateNavForAuth();
+  }
   closeAuthModal();
 }
 
@@ -1290,8 +1301,13 @@ async function doBrowseSearch(){
   const q=document.getElementById('browse-text-search')?.value.trim()||'';
   STATE.browseSearchText=q;
   const cats=STATE.browseActiveCategories;
-  if(!q&&!cats.length){document.getElementById('browse-search-results').style.display='none';return;}
+  if(!q&&!cats.length){
+    document.getElementById('browse-search-results').style.display='none';
+    document.getElementById('browse-recent-section').style.display='';
+    return;
+  }
   document.getElementById('browse-search-results').style.display='';
+  document.getElementById('browse-recent-section').style.display='none';
   STATE.browseResultPage=1;
   await doSearchPage(1);
 }
@@ -2128,19 +2144,7 @@ async function loadTrending(){
       card.className='poll-card';
       card.style.background='var(--card-bg)';
       card.onclick=()=>openPoll(poll.id,poll);
-      let barsHtml='';
-      if(poll.format==='choice'&&choices.length){
-        barsHtml='<div style="display:flex;flex-direction:column;gap:5px;margin-top:4px">';
-        choices.slice(0,3).forEach(c=>{
-          const pct=Math.round((c.votes||0)/total*100);
-          barsHtml+=`<div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:12px;color:var(--text-secondary);min-width:64px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.text}</span>
-            <div style="flex:1;height:5px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden"><div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px"></div></div>
-            <span style="font-size:11px;color:var(--accent);font-weight:600;min-width:26px">${pct}%</span>
-          </div>`;
-        });
-        barsHtml+='</div>';
-      }
+      const barsHtml=''; // No percentages on home page
       card.innerHTML=`
         <span class="poll-card-type ${poll.format==='choice'?'type-choice':'type-answer'}">${poll.format==='choice'?'Multiple choice':'Short answer'}</span>
         <div class="poll-card-title" style="font-size:15px">${poll.title}</div>
