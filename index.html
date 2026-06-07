@@ -880,12 +880,18 @@ select.form-input{cursor:pointer}
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 <script>
+console.log("SCRIPT STARTING");
+try{ console.log("supabase global:", typeof supabase); } catch(e){ console.error("supabase check failed:",e); }
 // ============================================================
 //  SUPABASE CLIENT
 // ============================================================
 const SUPABASE_URL = 'https://ozvkgbftxxknyijstrvl.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im96dmtnYmZ0eHhrbnlpanN0cnZsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2OTcwNzEsImV4cCI6MjA5NjI3MzA3MX0.KmqfbMf4Nca_GGGmAlsTrh-SDCQQiqbGYEJDa3uGKRA';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+console.log('sb created:', typeof sb);
+sb.from('polls').select('id,title').limit(3).then(({data,error})=>{
+  console.log('INSTANT TEST data:', JSON.stringify(data), 'error:', JSON.stringify(error));
+});
 
 // ============================================================
 //  STATE
