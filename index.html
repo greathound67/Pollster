@@ -1107,11 +1107,11 @@ async function doLogin(){
   const username=document.getElementById('login-username').value.trim();
   const pw=document.getElementById('login-password').value;
   if(!username||!pw){alert('Please fill in all fields.');return;}
-  // Look up email from username via profiles
-  const {data:profile,error:pe}=await sb.from('profiles').select('id').eq('username',username).single();
+  // Look up the email used at signup (username based)
+  const {data:profile,error:pe}=await sb.from('profiles').select('id,username').eq('username',username).single();
   if(pe||!profile){alert('Username not found.');return;}
-  // Supabase auth requires email — we store email as uid@pollster.app
-  const fakeEmail=`${profile.id}@pollster.internal`;
+  // Email format must match exactly what was used at signup
+  const fakeEmail=profile.username.toLowerCase().replace(/[^a-z0-9]/g,'_')+'@pollster.internal';
   const {data,error}=await sb.auth.signInWithPassword({email:fakeEmail,password:pw});
   if(error){alert('Incorrect password.');return;}
   closeAuthModal();
