@@ -409,9 +409,13 @@ select.form-input{cursor:pointer}
         <div class="form-group">
           <label class="form-label">Filter by categories <span style="color:var(--text-muted)">(up to 6)</span></label>
           <div class="categories-wrap" id="active-categories" style="margin-bottom:8px"></div>
-          <div class="categories-wrap" id="suggested-categories">
-            <!-- Populated by JS -->
+          <div style="position:relative;margin-bottom:8px">
+            <input class="form-input" id="browse-cat-input" placeholder="Search categories..." autocomplete="off"
+              oninput="filterBrowseCatSuggestions(this.value)"
+              onkeydown="if(event.key==='Escape'){document.getElementById('browse-cat-dropdown').style.display='none'}">
+            <div id="browse-cat-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-md);z-index:100;max-height:200px;overflow-y:auto"></div>
           </div>
+          <div class="categories-wrap" id="suggested-categories"></div>
         </div>
 
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -549,9 +553,11 @@ select.form-input{cursor:pointer}
         <div class="form-group">
           <label class="form-label">Categories <span style="color:var(--text-muted)">(up to 8)</span></label>
           <div class="categories-wrap" id="create-selected-cats" style="margin-bottom:8px"></div>
-          <div style="display:flex;gap:8px;margin-bottom:10px">
-            <input class="form-input" id="create-cat-input" placeholder="Add or create a category..." style="flex:1" onkeydown="if(event.key==='Enter'){addCategory()}">
-            <button class="btn btn-secondary btn-sm" onclick="addCategory()">Add</button>
+          <div style="position:relative;margin-bottom:10px">
+            <input class="form-input" id="create-cat-input" placeholder="Search or create a category..." autocomplete="off"
+              oninput="filterCatSuggestions(this.value)"
+              onkeydown="if(event.key==='Enter'){addCategory();event.preventDefault()}">
+            <div id="cat-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-md);z-index:100;max-height:200px;overflow-y:auto"></div>
           </div>
           <div class="categories-wrap" id="create-cat-suggestions"></div>
         </div>
@@ -942,13 +948,31 @@ class SbQuery {
     return { data: this._single ? (arr[0] || null) : arr, error: null };
   }
 
-  upsert(data, opts) { return this._mutate('POST', data, Object.assign({ onConflict: '' }, opts)); }
-  insert(data) { return this._mutate('POST', data); }
-  update(data) { return this._mutate('PATCH', data); }
-  delete() { return this._mutate('DELETE', null); }
+  upsert(data, opts) { this._mutateData=data; this._mutateMethod='POST'; this._mutateOpts=Object.assign({onConflict:''},opts||{}); return this; }
+  insert(data) { this._mutateData=data; this._mutateMethod='POST'; this._mutateOpts=null; return this; }
+  update(data) { this._mutateData=data; this._mutateMethod='PATCH'; this._mutateOpts=null; return this; }
+  delete() { this._mutateData=null; this._mutateMethod='DELETE'; this._mutateOpts=null; return this; }
 
   then(resolve, reject) {
     const self = this;
+    // Handle mutations (insert, update, delete, upsert)
+    if (this._mutateMethod) {
+      let url = SUPABASE_URL + '/rest/v1/' + this.table;
+      const params = this._filters.join('&');
+      if (params) url += '?' + params;
+      if (this._mutateOpts && this._mutateOpts.onConflict) url += (params ? '&' : '?') + 'on_conflict=' + this._mutateOpts.onConflict;
+      const h = _headers({ 'Prefer': 'return=representation' });
+      const body = this._mutateData ? JSON.stringify(Array.isArray(this._mutateData) ? this._mutateData : [this._mutateData]) : undefined;
+      return fetch(url, { method: this._mutateMethod, headers: h, body: body }).then(function(r) {
+        if (!r.ok) return r.json().catch(function(){ return { message: r.statusText }; }).then(function(e){ return resolve({ data: null, error: e }); });
+        return r.text().then(function(text) {
+          const d = text ? JSON.parse(text) : [];
+          const arr = Array.isArray(d) ? d : [d];
+          return resolve({ data: self._single ? (arr[0] || null) : arr, error: null });
+        });
+      }).catch(function(e){ resolve({ data: null, error: { message: e.message } }); });
+    }
+    // Handle selects
     let url = SUPABASE_URL + '/rest/v1/' + this.table + '?select=' + encodeURIComponent(this._select);
     this._filters.forEach(function(f) { url += '&' + f; });
     if (this._order) url += '&order=' + this._order;
@@ -1416,7 +1440,8 @@ async function openPoll(id, pollData){
 
 function renderPollAnswerArea(poll){
   const area=document.getElementById('poll-answer-area');
-  const filled=hasFilled(poll.id);
+  const isCreator=STATE.currentUser&&poll.author_id===STATE.currentUser.id;
+  const filled=hasFilled(poll.id)||isCreator;
   const filledAnswer=getFilledPolls()[poll.id];
   if(poll.format==='choice'){
     const choices=poll.choices||[];
@@ -1675,6 +1700,59 @@ function renderSelectedCreateCats(){
     wrap.appendChild(chip);
   });
 }
+function filterCatSuggestions(q){
+  const dropdown=document.getElementById('cat-dropdown');
+  const cats=STATE.allCategories.filter(c=>!STATE.createCategories.includes(c));
+  const filtered=q?cats.filter(c=>c.toLowerCase().includes(q.toLowerCase())):cats;
+  if(!filtered.length&&!q){dropdown.style.display='none';return;}
+  dropdown.style.display='';
+  dropdown.innerHTML='';
+  // Show "create new" option if typed value doesn't exactly match an existing cat
+  if(q&&!STATE.allCategories.map(c=>c.toLowerCase()).includes(q.toLowerCase())){
+    const newOpt=document.createElement('div');
+    newOpt.style.cssText='padding:8px 12px;cursor:pointer;font-size:14px;color:var(--accent);border-bottom:1px solid var(--border)';
+    newOpt.textContent='+ Create "'+q+'"';
+    newOpt.onmousedown=()=>{addCreateCat(q);if(!STATE.allCategories.includes(q))STATE.allCategories.push(q);document.getElementById('create-cat-input').value='';dropdown.style.display='none';};
+    dropdown.appendChild(newOpt);
+  }
+  filtered.slice(0,20).forEach(cat=>{
+    const opt=document.createElement('div');
+    opt.style.cssText='padding:8px 12px;cursor:pointer;font-size:14px;color:var(--text-primary)';
+    opt.textContent=cat;
+    opt.onmouseover=()=>opt.style.background='var(--bg-tertiary)';
+    opt.onmouseout=()=>opt.style.background='';
+    opt.onmousedown=()=>{addCreateCat(cat);document.getElementById('create-cat-input').value='';dropdown.style.display='none';};
+    dropdown.appendChild(opt);
+  });
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#create-cat-input')&&!e.target.closest('#cat-dropdown')){
+    const d=document.getElementById('cat-dropdown');if(d)d.style.display='none';
+  }
+  if(!e.target.closest('#browse-cat-input')&&!e.target.closest('#browse-cat-dropdown')){
+    const d=document.getElementById('browse-cat-dropdown');if(d)d.style.display='none';
+  }
+});
+
+function filterBrowseCatSuggestions(q){
+  const dropdown=document.getElementById('browse-cat-dropdown');
+  const cats=STATE.allCategories.filter(c=>!STATE.browseActiveCategories.includes(c));
+  const filtered=q?cats.filter(c=>c.toLowerCase().includes(q.toLowerCase())):cats;
+  if(!filtered.length){dropdown.style.display='none';return;}
+  dropdown.style.display='';
+  dropdown.innerHTML='';
+  filtered.slice(0,20).forEach(cat=>{
+    const opt=document.createElement('div');
+    opt.style.cssText='padding:8px 12px;cursor:pointer;font-size:14px;color:var(--text-primary)';
+    opt.textContent=cat;
+    opt.onmouseover=()=>opt.style.background='var(--bg-tertiary)';
+    opt.onmouseout=()=>opt.style.background='';
+    opt.onmousedown=()=>{addBrowseCat(cat);document.getElementById('browse-cat-input').value='';dropdown.style.display='none';};
+    dropdown.appendChild(opt);
+  });
+  dropdown.style.display=filtered.length?'':'';
+}
+
 function addCategory(){
   const input=document.getElementById('create-cat-input');
   const val=input.value.trim();
@@ -1682,6 +1760,7 @@ function addCategory(){
   addCreateCat(val);
   if(!STATE.allCategories.includes(val)) STATE.allCategories.push(val);
   input.value='';
+  const d=document.getElementById('cat-dropdown');if(d)d.style.display='none';
 }
 
 async function submitPoll(){
