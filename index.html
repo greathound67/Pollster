@@ -254,6 +254,21 @@ select.form-input{cursor:pointer}
   .nav-link span{display:none}
   .nav-link{padding:6px}
 }
+/* ---- TOUR ---- */
+#tour-blocker{position:fixed;inset:0;z-index:4999;pointer-events:none;background:transparent;display:none}
+#tour-highlight{position:absolute;top:0;left:0;box-shadow:0 0 0 9999px rgba(0,0,0,0.55);border-radius:var(--radius-md);transition:top 0.3s,left 0.3s,width 0.3s,height 0.3s;z-index:5001;pointer-events:none;display:none}
+#tour-bot{position:fixed;bottom:24px;right:24px;z-index:5002;display:none;flex-direction:column;align-items:flex-end;gap:10px;pointer-events:auto;max-width:320px}
+#tour-bubble{background:var(--navy);color:#fff;border-radius:16px 16px 4px 16px;padding:14px 18px;font-size:14px;line-height:1.6;box-shadow:0 8px 32px rgba(0,0,0,0.3)}
+#tour-bubble-arrow{width:0;height:0;border-left:10px solid transparent;border-top:10px solid var(--navy);align-self:flex-end;margin-right:32px}
+#tour-bot-char{width:68px;height:68px;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.3))}
+#tour-btn-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.tour-btn{padding:7px 16px;border-radius:var(--radius-md);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.15s}
+.tour-btn-primary{background:var(--accent);color:#fff}
+.tour-btn-skip{background:rgba(255,255,255,0.15);color:#fff}
+#tour-progress{display:flex;gap:5px;justify-content:center;margin-bottom:6px}
+.tour-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.3);transition:background 0.2s}
+.tour-dot.active{background:#fff}
+.tour-allowed{}
 </style>
 </head>
 <body>
@@ -278,7 +293,7 @@ select.form-input{cursor:pointer}
     <div class="nav-links" id="nav-links">
       <button class="nav-link active" onclick="showPage('home')" data-page="home"><span>Home</span></button>
       <button class="nav-link" onclick="showPage('browse')" data-page="browse"><span>Browse</span></button>
-      <button class="nav-link" onclick="showPage('create')" data-page="create"><span>Create</span></button>
+      <button class="nav-link" onclick="showPage('create');TOUR.onNavCreate&&TOUR.onNavCreate();" data-page="create"><span>Create</span></button>
       <button class="nav-link" id="nav-community" onclick="showPage('community')" data-page="community" style="display:none"><span>Community</span></button>
     </div>
     <div class="nav-right">
@@ -363,14 +378,22 @@ select.form-input{cursor:pointer}
     </div>
 
     <!-- CTA strip -->
-    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:22px 26px;background:var(--accent-glow);border:1px solid rgba(79,142,247,0.2);border-radius:var(--radius-xl);margin-bottom:56px">
-      <div>
+    <div id="home-cta" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;padding:22px 26px;background:var(--accent-glow);border:1px solid rgba(79,142,247,0.2);border-radius:var(--radius-xl);margin-bottom:56px">
+      <div id="home-cta-guest">
         <div style="font-weight:600;font-size:15px;margin-bottom:3px">Ready to jump in?</div>
         <div style="font-size:13px;color:var(--text-secondary)">Free, fast, no spam. Ever.</div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div id="home-cta-user" style="display:none">
+        <div style="font-weight:600;font-size:15px;margin-bottom:3px" id="home-cta-username">Welcome back!</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Good to see you again.</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="home-cta-buttons-guest">
         <button class="btn btn-primary" onclick="openAuthModal('signup')">Create a free account</button>
         <button class="btn btn-ghost" onclick="showPage('browse')">Just browse first</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="home-cta-buttons-user" style="display:none">
+        <button class="btn btn-primary" onclick="showPage('browse')">Browse Polls</button>
+        <button class="btn btn-secondary" onclick="showPage('create')">Create a Poll</button>
       </div>
     </div>
   </div>
@@ -412,7 +435,7 @@ select.form-input{cursor:pointer}
           <div style="position:relative;margin-bottom:8px">
             <input class="form-input" id="browse-cat-input" placeholder="Search categories..." autocomplete="off"
               oninput="filterBrowseCatSuggestions(this.value)"
-              onkeydown="if(event.key==='Escape'){document.getElementById('browse-cat-dropdown').style.display='none'}">
+              onkeydown="if(event.key==='Escape'){document.getElementById('browse-cat-dropdown').style.display='none';}else if(event.key==='Enter'){var first=document.querySelector('#browse-cat-dropdown div');if(first){first.dispatchEvent(new MouseEvent('mousedown',{bubbles:true}));event.preventDefault();}}">
             <div id="browse-cat-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius-md);box-shadow:var(--shadow-md);z-index:100;max-height:200px;overflow-y:auto"></div>
           </div>
           <div class="categories-wrap" id="suggested-categories"></div>
@@ -709,6 +732,14 @@ select.form-input{cursor:pointer}
           <input type="checkbox" id="hide-profile-toggle" onchange="toggleHideProfile(this)">
           <span class="toggle-slider"></span>
         </label>
+      </div>
+
+      <div class="toggle-wrap" style="border:none;padding:14px 0 0">
+        <div class="toggle-info">
+          <div class="toggle-label">🤖 Take the Tour</div>
+          <div class="toggle-desc">Replay the guided tour with Polly</div>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="replayTour()">Start Tour</button>
       </div>
 
       <div style="padding-top:20px;margin-top:4px" id="settings-auth-section">
@@ -1207,6 +1238,19 @@ function updateNavForAuth(){
     document.getElementById('nav-avatar').textContent=STATE.currentUser.username.charAt(0).toUpperCase();
   }
   document.getElementById('anon-polls-toggle-wrap').style.display=loggedIn?'':'none';
+  // Update home CTA
+  var guestInfo=document.getElementById('home-cta-guest');
+  var userInfo=document.getElementById('home-cta-user');
+  var guestBtns=document.getElementById('home-cta-buttons-guest');
+  var userBtns=document.getElementById('home-cta-buttons-user');
+  if(guestInfo) guestInfo.style.display=loggedIn?'none':'';
+  if(userInfo) userInfo.style.display=loggedIn?'':'none';
+  if(guestBtns) guestBtns.style.display=loggedIn?'none':'';
+  if(userBtns) userBtns.style.display=loggedIn?'':'none';
+  if(loggedIn&&STATE.currentUser){
+    var el=document.getElementById('home-cta-username');
+    if(el) el.textContent='Welcome back, '+STATE.currentUser.username+'!';
+  }
 }
 
 // Listen for auth state changes
@@ -1271,6 +1315,7 @@ function addBrowseCat(cat){
   renderActiveBrowseCats();
   renderSuggestedCategories();
   doBrowseSearch();
+  if(cat.toLowerCase()==='food') TOUR.onFoodSearch();
 }
 function removeBrowseCat(cat){
   STATE.browseActiveCategories=STATE.browseActiveCategories.filter(c=>c!==cat);
@@ -1380,6 +1425,7 @@ function loadMoreRecent(){renderRecentPolls(false);}
 function makePollCard(poll){
   const card=document.createElement('div');
   card.className='poll-card';
+  card.setAttribute('data-poll-id',poll.id);
   card.onclick=()=>openPoll(poll.id,poll);
   const cats=(poll.categories||[]).map(c=>`<span class="category-chip" style="cursor:default;pointer-events:none">${c}</span>`).join('');
   card.innerHTML=`
@@ -1422,6 +1468,11 @@ function goToPage(n){doSearchPage(n);}
 async function openPoll(id, pollData){
   STATE.prevPage='browse';
   STATE.currentPollId=id;
+  if(TOUR.active){
+    setTimeout(function(){
+      document.querySelectorAll('#page-poll, #page-poll *, .choice-option, #poll-answer-area, .btn-primary, #submit-choice-btn').forEach(function(e){ e.classList.add('tour-allowed'); });
+    }, 400);
+  }
 
   // Use passed data or fetch fresh
   let poll=pollData;
@@ -1457,7 +1508,8 @@ async function openPoll(id, pollData){
 function renderPollAnswerArea(poll){
   const area=document.getElementById('poll-answer-area');
   const isCreator=STATE.currentUser&&poll.author_id===STATE.currentUser.id;
-  const filled=hasFilled(poll.id)||isCreator;
+  // During tour, always show the answer form so already-filled polls can be redone
+  const filled=(hasFilled(poll.id)||isCreator)&&!TOUR.active;
   const filledAnswer=getFilledPolls()[poll.id];
   if(poll.format==='choice'){
     const choices=poll.choices||[];
@@ -1531,11 +1583,15 @@ async function submitChoice(pollId){
   const {error}=await sb.from('responses').insert(payload);
   if(error){
     if(btn){btn.disabled=false;btn.textContent='Submit';}
-    if(error.code==='23505') alert('You already answered this poll!');
-    else alert('Error submitting: '+error.message);
+    if(error.code==='23505'){
+      // During tour allow re-filling, just proceed
+      if(TOUR.active){ markPollFilled(pollId,selectedChoiceId.toString()); TOUR.onPollFilled('choice'); return; }
+      alert('You already answered this poll!');
+    } else { alert('Error submitting: '+error.message); }
     return;
   }
   markPollFilled(pollId,selectedChoiceId.toString());
+  TOUR.onPollFilled('choice');
   if(STATE.currentUser){
     STATE.currentUser.stars+=1;
     STATE.currentUser.starsAllTime+=1;
@@ -1561,11 +1617,14 @@ async function submitShortAnswer(pollId){
   if(STATE.currentUser) payload.user_id=STATE.currentUser.id;
   const {error}=await sb.from('responses').insert(payload);
   if(error){
-    if(error.code==='23505') alert('You already answered this poll!');
-    else alert('Error submitting: '+error.message);
+    if(error.code==='23505'){
+      if(TOUR.active){ markPollFilled(pollId,answer); TOUR.onPollFilled('answer'); return; }
+      alert('You already answered this poll!');
+    } else { alert('Error submitting: '+error.message); }
     return;
   }
   markPollFilled(pollId,answer);
+  TOUR.onPollFilled('answer');
   if(STATE.currentUser){
     STATE.currentUser.stars+=1;
     document.getElementById('nav-star-count').textContent=STATE.currentUser.stars;
@@ -1651,6 +1710,12 @@ function initCreate(){
   document.getElementById('create-success').style.display='none';
   document.getElementById('create-question').value='';
   document.getElementById('create-char-count').textContent='0 / 120';
+  // Reset submit button
+  const btn=document.querySelector('#create-form-wrap .btn-primary');
+  if(btn){btn.disabled=false;btn.textContent='Done! 🎉';}
+  // Reset selected cats display
+  const selCats=document.getElementById('create-selected-cats');
+  if(selCats) selCats.innerHTML='';
   setFormat('choice');
   renderChoiceList();
   renderCreateCatSuggestions();
@@ -1833,6 +1898,7 @@ async function submitPoll(){
   }
   STATE.currentPollId=pollRow.id;
   document.getElementById('new-poll-id').textContent=pollRow.id;
+  TOUR.onPollCreated();
   document.getElementById('create-form-wrap').style.display='none';
   document.getElementById('create-success').style.display='';
 }
@@ -2185,9 +2251,403 @@ async function doSearchPage(page){
   await Promise.all([loadTitles(),loadCategories()]);
   subscribeShoutouts();
   loadTrending();
+  checkAndStartTour();
 
 
 })();
+
+// ============================================================
+//  TOUR SYSTEM
+// ============================================================
+
+// Steps definition
+// Tour polls: P100004, P100005, P100006 = choice | P100003, P100007 = answer
+var TOUR_CHOICE_IDS = ['P100004','P100005','P100006'];
+var TOUR_ANSWER_IDS = ['P100003','P100007'];
+
+function _tourChoiceSelectors(){
+  return TOUR_CHOICE_IDS.map(function(id){ return '[data-poll-id="'+id+'"]'; });
+}
+function _tourAnswerSelectors(){
+  return TOUR_ANSWER_IDS.map(function(id){ return '[data-poll-id="'+id+'"]'; });
+}
+
+var TOUR_STEPS = [
+  {
+    id: 'welcome',
+    msg: "Hey! I'm Polly the bot! Want a quick tour of Pollster? It only takes a few minutes!",
+    buttons: [{text:"Let's go!", action:"next"},{text:"Skip", action:"skip"}],
+    page: null,
+    getHighlight: null,
+    getAllowed: null
+  },
+  {
+    id: 'browse-intro',
+    msg: "This is Browse — where all the polls live. First things first: use the category search to find Food polls!",
+    buttons: [{text:"Got it!", action:"next"}],
+    page: 'browse',
+    getHighlight: function(){ return document.getElementById('browse-cat-input'); },
+    getAllowed: null
+  },
+  {
+    id: 'food-search',
+    msg: "Type 'Food' in the box below and click it in the dropdown.",
+    buttons: [],
+    page: 'browse',
+    waitFor: 'food-search',
+    getHighlight: function(){ return document.getElementById('browse-cat-input'); },
+    getAllowed: function(){ return ['#browse-cat-input','#browse-cat-dropdown']; }
+  },
+  {
+    id: 'choice-poll',
+    msg: "The highlighted polls are multiple choice. Click one and fill it out!",
+    buttons: [],
+    page: 'browse',
+    waitFor: 'choice-filled',
+    getHighlight: function(){
+      var el = document.getElementById('browse-search-results');
+      return (el && el.style.display!=='none') ? el : document.getElementById('browse-recent-section');
+    },
+    getAllowed: function(){
+      var sel = _tourChoiceSelectors();
+      sel.push('#page-poll','#poll-answer-area','.choice-option','#submit-choice-btn');
+      sel.push('.btn-ghost'); // back button
+      return sel;
+    }
+  },
+  {
+    id: 'answer-poll',
+    msg: "Now click one of the highlighted short answer polls and write your response!",
+    buttons: [],
+    page: 'browse',
+    waitFor: 'answer-filled',
+    getHighlight: function(){
+      var el = document.getElementById('browse-search-results');
+      return (el && el.style.display!=='none') ? el : document.getElementById('browse-recent-section');
+    },
+    getAllowed: function(){
+      var sel = _tourAnswerSelectors();
+      sel.push('#page-poll','#poll-answer-area','#short-answer-input','.btn-primary','.btn-sm');
+      sel.push('.btn-ghost'); // back button
+      return sel;
+    }
+  },
+  {
+    id: 'go-create',
+    msg: "You're a natural! Now click Create in the nav bar to make your own poll!",
+    buttons: [],
+    page: 'browse',
+    waitFor: 'nav-create',
+    getHighlight: function(){ return document.querySelector('[data-page="create"]'); },
+    getAllowed: function(){ return ['[data-page="create"]']; }
+  },
+  {
+    id: 'create-intro',
+    msg: "Here's the Create page! Make sure Multiple Choice is selected. Then write your question.",
+    buttons: [{text:"Got it!", action:"next"}],
+    page: 'create',
+    getHighlight: function(){ return document.getElementById('fmt-choice-btn'); },
+    getAllowed: null
+  },
+  {
+    id: 'create-submit',
+    msg: "Fill in your question and at least 3 choices, then hit Done! when ready!",
+    buttons: [],
+    page: 'create',
+    waitFor: 'poll-created',
+    getHighlight: function(){ return document.getElementById('create-form-wrap'); },
+    getAllowed: function(){
+      return [
+        '#create-question','#choice-list','#choice-list input',
+        '#add-choice-btn','#fmt-choice-btn',
+        '#create-cat-input','#cat-dropdown','#create-selected-cats',
+        '#create-form-wrap .btn-primary','#create-form-wrap .btn-ghost',
+        '#create-form-wrap .btn-secondary','#create-cat-suggestions'
+      ];
+    }
+  },
+  {
+    id: 'done',
+    msg: "You did it! Your poll is live and you earned 2 stars. Welcome to Pollster!",
+    buttons: [{text:"Finish tour!", action:"finish"}],
+    page: 'create',
+    getHighlight: function(){ return document.getElementById('create-success'); },
+    getAllowed: null
+  }
+];
+
+var TOUR = {
+  active: false,
+  step: 0,
+  choiceFilled: false,
+  answerFilled: false,
+
+  start: function() {
+    this.active = true;
+    this.step = 0;
+    this.choiceFilled = false;
+    this.answerFilled = false;
+    localStorage.setItem('pollster_tour_done','2');
+    document.getElementById('tour-bot').style.display = 'flex';
+    this._installBlocker();
+    this.render();
+  },
+
+  end: function(celebrate) {
+    this.active = false;
+    document.getElementById('tour-bot').style.display = 'none';
+    document.getElementById('tour-highlight').style.display = 'none';
+    this._removeBlocker();
+    
+  },
+
+  skip: function(){ this.end(false); },
+
+  next: function(){
+    this.step++;
+    if(this.step >= TOUR_STEPS.length){ this.end(false); return; }
+    this.render();
+  },
+
+  render: function(){
+    var self = this;
+    var s = TOUR_STEPS[this.step];
+    if(!s){ this.end(false); return; }
+    if(s.page && STATE.currentPage !== s.page){
+      showPage(s.page);
+      setTimeout(function(){ self._renderUI(s); }, 500);
+    } else {
+      this._renderUI(s);
+    }
+  },
+
+  _renderUI: function(s){
+    var self = this;
+    // Progress dots
+    var prog = document.getElementById('tour-progress');
+    prog.innerHTML = '';
+    TOUR_STEPS.forEach(function(_,i){
+      var d = document.createElement('div');
+      d.className = 'tour-dot'+(i===self.step?' active':'');
+      prog.appendChild(d);
+    });
+
+    // Message
+    document.getElementById('tour-bubble-text').textContent = s.msg;
+
+    // Buttons
+    var row = document.getElementById('tour-btn-row');
+    row.innerHTML = '';
+    (s.buttons||[]).forEach(function(b){
+      var btn = document.createElement('button');
+      btn.className = 'tour-btn tour-btn-primary';
+      btn.textContent = b.text;
+      btn.onclick = function(){
+        if(b.action==='next') TOUR.next();
+        else if(b.action==='skip') TOUR.skip();
+        else if(b.action==='finish') TOUR.end(true);
+        else if(b.action==='create'){ showPage('create'); TOUR.next(); }
+      };
+      row.appendChild(btn);
+    });
+    if(s.buttons && s.buttons.length && !s.buttons.find(function(b){return b.action==='skip';}) && self.step>0){
+      var sk = document.createElement('button');
+      sk.className = 'tour-btn tour-btn-skip';
+      sk.textContent = 'Skip tour';
+      sk.onclick = function(){ TOUR.skip(); };
+      row.appendChild(sk);
+    }
+
+    // Highlight + allowed elements (with short delay for DOM)
+    setTimeout(function(){
+      // Highlight
+      var hl = document.getElementById('tour-highlight');
+      var el = s.getHighlight ? s.getHighlight() : null;
+      if(el){
+        var r = el.getBoundingClientRect();
+        var pad = 10;
+        hl.style.display = 'block';
+        hl.style.top = (r.top+window.scrollY-pad)+'px';
+        hl.style.left = (r.left+window.scrollX-pad)+'px';
+        hl.style.width = (r.width+pad*2)+'px';
+        hl.style.height = (r.height+pad*2)+'px';
+        hl.style.position = 'absolute';
+      } else {
+        hl.style.display = 'none';
+      }
+
+      // Update allowed selectors immediately
+      TOUR._allowedSelectors = s.getAllowed ? s.getAllowed() : [];
+      // Visually highlight tour polls during poll-filling steps
+      document.querySelectorAll('.poll-card').forEach(function(c){ c.style.outline=''; c.style.opacity=''; });
+      if(s.waitFor==='choice-filled'){
+        TOUR_CHOICE_IDS.forEach(function(id){
+          var el=document.querySelector('[data-poll-id="'+id+'"]');
+          if(el){ el.style.outline='3px solid var(--accent)'; el.style.opacity='1'; }
+        });
+        // Dim non-tour polls
+        document.querySelectorAll('.poll-card').forEach(function(c){
+          if(!TOUR_CHOICE_IDS.includes(c.getAttribute('data-poll-id'))) c.style.opacity='0.3';
+        });
+      }
+      if(s.waitFor==='answer-filled'){
+        TOUR_ANSWER_IDS.forEach(function(id){
+          var el=document.querySelector('[data-poll-id="'+id+'"]');
+          if(el){ el.style.outline='3px solid var(--accent)'; el.style.opacity='1'; }
+        });
+        document.querySelectorAll('.poll-card').forEach(function(c){
+          if(!TOUR_ANSWER_IDS.includes(c.getAttribute('data-poll-id'))) c.style.opacity='0.3';
+        });
+      }
+    }, 300);
+  },
+
+  _allowedSelectors: [],
+
+  _installBlocker: function(){
+    var self = this;
+    if(document._tourHandler) return;
+    document._tourHandler = function(e){
+      if(!TOUR.active) return;
+      // Always allow tour bot
+      if(e.target.closest('#tour-bot')) return;
+      // Check allowed selectors
+      var allowed = false;
+      for(var i=0; i<TOUR._allowedSelectors.length; i++){
+        try{
+          if(e.target.closest(TOUR._allowedSelectors[i])){ allowed=true; break; }
+        }catch(err){}
+      }
+      if(!allowed){ e.stopPropagation(); e.preventDefault(); }
+    };
+    document.addEventListener('click', document._tourHandler, true);
+    document.addEventListener('mousedown', document._tourHandler, true);
+    // Allow all keyboard input — only block mouse clicks
+  },
+
+  _removeBlocker: function(){
+    if(document._tourHandler){
+      document.removeEventListener('click', document._tourHandler, true);
+      document.removeEventListener('mousedown', document._tourHandler, true);
+      document._tourHandler = null;
+    }
+  },
+
+  onFoodSearch: function(){
+    if(!this.active) return;
+    var s = TOUR_STEPS[this.step];
+    if(s && s.waitFor==='food-search') setTimeout(function(){ TOUR.next(); },600);
+  },
+
+  onPollFilled: function(format){
+    if(!this.active) return;
+    var s = TOUR_STEPS[this.step];
+    if(!s) return;
+    if(format==='choice' && s.waitFor==='choice-filled' && !this.choiceFilled){
+      this.choiceFilled = true;
+      setTimeout(function(){ showPage('browse'); TOUR.next(); },1200);
+    } else if(format==='answer' && s.waitFor==='answer-filled' && !this.answerFilled){
+      this.answerFilled = true;
+      setTimeout(function(){ showPage('browse'); TOUR.next(); },1200);
+    }
+  },
+
+  onPollCreated: function(){
+    if(!this.active) return;
+    var s = TOUR_STEPS[this.step];
+    if(s && s.waitFor==='poll-created') setTimeout(function(){ TOUR.next(); },600);
+  },
+
+  onNavCreate: function(){
+    if(!this.active) return;
+    var s = TOUR_STEPS[this.step];
+    if(s && s.waitFor==='nav-create') setTimeout(function(){ TOUR.next(); },300);
+  }
+};
+
+// Re-allow poll page elements whenever openPoll runs during tour
+var _origOpenPoll = openPoll;
+openPoll = async function(id, pollData){
+  await _origOpenPoll(id, pollData);
+  if(TOUR.active){
+    setTimeout(function(){
+      var s = TOUR_STEPS[TOUR.step];
+      if(s && s.getAllowed) TOUR._allowedSelectors = s.getAllowed();
+      // Move highlight to the poll answer area
+      var hl = document.getElementById("tour-highlight");
+      var el = document.getElementById("poll-answer-area");
+      if(el && hl){
+        var r = el.getBoundingClientRect();
+        var pad = 10;
+        hl.style.display = "block";
+        hl.style.top = (r.top + window.scrollY - pad) + "px";
+        hl.style.left = (r.left + window.scrollX - pad) + "px";
+        hl.style.width = (r.width + pad*2) + "px";
+        hl.style.height = (r.height + pad*2) + "px";
+        hl.style.position = "absolute";
+      }
+    }, 500);
+  }
+};
+
+function checkAndStartTour(){
+  if(localStorage.getItem('pollster_tour_done')!=='2'){
+    setTimeout(function(){ TOUR.start(); },1500);
+  }
+}
+
+function replayTour(){
+  localStorage.removeItem('pollster_tour_done');
+  setTimeout(function(){ TOUR.start(); },100);
+}
+
 </script>
+
+<!-- TOUR BLOCKER (blocks all clicks during tour) -->
+<div id="tour-blocker"></div>
+
+<!-- TOUR HIGHLIGHT BOX -->
+<div id="tour-highlight-wrap" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:5001"><div id="tour-highlight"></div></div>
+
+<!-- TOUR BOT -->
+<div id="tour-bot">
+  <div id="tour-progress"></div>
+  <div id="tour-bubble">
+    <div id="tour-bubble-text">Hi! Welcome to Pollster!</div>
+    <div id="tour-btn-row"></div>
+  </div>
+  <div id="tour-bubble-arrow"></div>
+  <!-- BOT CHARACTER SVG -->
+  <svg id="tour-bot-char" viewBox="0 0 68 68" xmlns="http://www.w3.org/2000/svg">
+    <!-- Body -->
+    <rect x="14" y="28" width="40" height="30" rx="10" fill="#4f8ef7"/>
+    <!-- Head -->
+    <rect x="18" y="8" width="32" height="26" rx="10" fill="#4f8ef7"/>
+    <!-- Face visor -->
+    <rect x="22" y="13" width="24" height="14" rx="5" fill="#0f1b2d" opacity="0.85"/>
+    <!-- Eyes -->
+    <circle cx="29" cy="20" r="3.5" fill="#4f8ef7"/>
+    <circle cx="39" cy="20" r="3.5" fill="#4f8ef7"/>
+    <circle cx="30" cy="19" r="1.5" fill="white"/>
+    <circle cx="40" cy="19" r="1.5" fill="white"/>
+    <!-- Antenna -->
+    <line x1="34" y1="8" x2="34" y2="2" stroke="#4f8ef7" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="34" cy="2" r="2.5" fill="#f5a623"/>
+    <!-- Arms -->
+    <rect x="4" y="32" width="10" height="5" rx="2.5" fill="#4f8ef7"/>
+    <rect x="54" y="32" width="10" height="5" rx="2.5" fill="#4f8ef7"/>
+    <!-- Legs -->
+    <rect x="20" y="55" width="10" height="8" rx="4" fill="#3a6dc7"/>
+    <rect x="38" y="55" width="10" height="8" rx="4" fill="#3a6dc7"/>
+    <!-- Belly panel -->
+    <rect x="22" y="34" width="24" height="14" rx="4" fill="#3a6dc7"/>
+    <circle cx="29" cy="41" r="2" fill="#4f8ef7"/>
+    <circle cx="34" cy="41" r="2" fill="#4f8ef7"/>
+    <circle cx="39" cy="41" r="2" fill="#4f8ef7"/>
+    <!-- Mouth -->
+    <path d="M27 26 Q34 30 41 26" stroke="#4f8ef7" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  </svg>
+</div>
+
 </body>
 </html>
