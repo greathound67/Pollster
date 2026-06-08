@@ -518,9 +518,9 @@ select.form-input{cursor:pointer}
       <!-- Question -->
       <div class="section">
         <div class="form-group">
-          <label class="form-label">Question <span style="color:var(--text-muted)">(max 50 characters)</span></label>
-          <input class="form-input" id="create-question" maxlength="50" placeholder="What's on your mind?" oninput="updateCharCount()">
-          <div class="form-hint" id="create-char-count">0 / 50</div>
+          <label class="form-label">Question <span style="color:var(--text-muted)">(max 120 characters)</span></label>
+          <input class="form-input" id="create-question" maxlength="120" placeholder="What's on your mind?" oninput="updateCharCount()">
+          <div class="form-hint" id="create-char-count">0 / 120</div>
         </div>
       </div>
 
@@ -867,7 +867,7 @@ select.form-input{cursor:pointer}
       <div id="edit-preresponse-fields" style="display:flex;flex-direction:column;gap:12px">
         <div class="form-group">
           <label class="form-label">Question</label>
-          <input class="form-input" id="edit-question" maxlength="50">
+          <input class="form-input" id="edit-question" maxlength="120">
         </div>
       </div>
       <div class="form-group">
@@ -1650,7 +1650,7 @@ function initCreate(){
   document.getElementById('create-form-wrap').style.display='';
   document.getElementById('create-success').style.display='none';
   document.getElementById('create-question').value='';
-  document.getElementById('create-char-count').textContent='0 / 50';
+  document.getElementById('create-char-count').textContent='0 / 120';
   setFormat('choice');
   renderChoiceList();
   renderCreateCatSuggestions();
@@ -1666,7 +1666,7 @@ function setFormat(fmt){
 }
 function updateCharCount(){
   const v=document.getElementById('create-question')?.value||'';
-  document.getElementById('create-char-count').textContent=`${v.length} / 50`;
+  document.getElementById('create-char-count').textContent=`${v.length} / 120`;
 }
 function renderChoiceList(){
   const list=document.getElementById('choice-list');
