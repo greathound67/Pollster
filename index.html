@@ -311,7 +311,7 @@ select.form-input{cursor:pointer}
 <!-- ============================================================ -->
 <!--  HOME PAGE                                                    -->
 <!-- ============================================================ -->
-<div id="page-home" class="page active">
+<div id="page-home" class="page">
 
   <!-- HERO BAND -->
   <div style="background:var(--bg-secondary);border-bottom:1px solid var(--border);padding:52px 0 44px">
@@ -499,6 +499,7 @@ select.form-input{cursor:pointer}
 
     <div style="margin-top:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
       <span style="font-size:14px;color:var(--text-secondary)">🗳️ <strong id="poll-page-responses">0</strong> total responses</span>
+      <button class="btn btn-ghost btn-sm" onclick="copyPollUrl()" id="copy-poll-btn">🔗 Copy link</button>
     </div>
 
     <!-- Creator Controls -->
@@ -1129,7 +1130,7 @@ function saveSetting(key,val){STATE.settings[key]=val;saveSettings();}
 // ============================================================
 //  NAVIGATION
 // ============================================================
-function showPage(name){
+function showPage(name, skipHash){
   if(name==='community'&&STATE.settings.hideProfile) return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const el=document.getElementById('page-'+name);
@@ -1138,6 +1139,7 @@ function showPage(name){
   STATE.currentPage=name;
   document.querySelectorAll('.nav-link[data-page]').forEach(l=>{l.classList.toggle('active',l.dataset.page===name);});
   window.scrollTo({top:0,behavior:'smooth'});
+  if(!skipHash) history.pushState(null,'','#'+name);
   if(name==='browse') initBrowse();
   if(name==='profile') renderProfile(STATE.currentUser);
   if(name==='settings') syncSettingsUI();
@@ -1465,9 +1467,10 @@ function goToPage(n){doSearchPage(n);}
 // ============================================================
 //  POLL PAGE
 // ============================================================
-async function openPoll(id, pollData){
+async function openPoll(id, pollData, skipHash){
   STATE.prevPage='browse';
   STATE.currentPollId=id;
+  if(!skipHash) history.pushState(null,'','#poll/'+id);
   if(TOUR.active){
     setTimeout(function(){
       document.querySelectorAll('#page-poll, #page-poll *, .choice-option, #poll-answer-area, .btn-primary, #submit-choice-btn').forEach(function(e){ e.classList.add('tour-allowed'); });
@@ -1502,7 +1505,7 @@ async function openPoll(id, pollData){
   renderPollAnswerArea(poll);
   const isCreator=STATE.currentUser&&poll.author_id===STATE.currentUser.id;
   document.getElementById('poll-creator-controls').style.display=isCreator?'':'none';
-  showPage('poll');
+  showPage('poll', true);
 }
 
 function renderPollAnswerArea(poll){
@@ -2176,6 +2179,26 @@ function closeShoutout(){document.getElementById('shoutout-banner').classList.re
 // ============================================================
 //  UTILITIES
 // ============================================================
+function copyPollUrl(){
+  const id = STATE.currentPollId;
+  if(!id) return;
+  const url = window.location.origin + window.location.pathname + '#poll/' + id;
+  navigator.clipboard.writeText(url).then(function(){
+    const btn = document.getElementById('copy-poll-btn');
+    if(btn){ btn.textContent = '✅ Copied!'; setTimeout(function(){ btn.textContent = '🔗 Copy link'; }, 2000); }
+  }).catch(function(){
+    // Fallback for browsers that block clipboard
+    const ta = document.createElement('textarea');
+    ta.value = url;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('copy-poll-btn');
+    if(btn){ btn.textContent = '✅ Copied!'; setTimeout(function(){ btn.textContent = '🔗 Copy link'; }, 2000); }
+  });
+}
+
 function formatDate(d){
   if(!d) return '';
   try{return new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch{return d;}
@@ -2250,8 +2273,11 @@ async function doSearchPage(page){
   updateNavForAuth();
   await Promise.all([loadTitles(),loadCategories()]);
   subscribeShoutouts();
+  // Handle hash BEFORE loading trending so page is correct
+  await handleHash();
   loadTrending();
-  checkAndStartTour();
+  // Only start tour if we are on home page (first visit)
+  if(STATE.currentPage === 'home') checkAndStartTour();
 
 
 })();
@@ -2281,17 +2307,10 @@ var TOUR_STEPS = [
     getHighlight: null,
     getAllowed: null
   },
-  {
-    id: 'browse-intro',
-    msg: "This is Browse — where all the polls live. First things first: use the category search to find Food polls!",
-    buttons: [{text:"Got it!", action:"next"}],
-    page: 'browse',
-    getHighlight: function(){ return document.getElementById('browse-cat-input'); },
-    getAllowed: null
-  },
+
   {
     id: 'food-search',
-    msg: "Type 'Food' in the box below and click it in the dropdown.",
+    msg: "Welcome to Browse! Type Food in the category search box to find polls.",
     buttons: [],
     page: 'browse',
     waitFor: 'food-search',
@@ -2341,28 +2360,22 @@ var TOUR_STEPS = [
     getHighlight: function(){ return document.querySelector('[data-page="create"]'); },
     getAllowed: function(){ return ['[data-page="create"]']; }
   },
-  {
-    id: 'create-intro',
-    msg: "Here's the Create page! Make sure Multiple Choice is selected. Then write your question.",
-    buttons: [{text:"Got it!", action:"next"}],
-    page: 'create',
-    getHighlight: function(){ return document.getElementById('fmt-choice-btn'); },
-    getAllowed: null
-  },
+
   {
     id: 'create-submit',
-    msg: "Fill in your question and at least 3 choices, then hit Done! when ready!",
+    msg: "Here's the Create page! Fill in your question and at least 3 choices, then hit Done!",
     buttons: [],
     page: 'create',
     waitFor: 'poll-created',
-    getHighlight: function(){ return document.getElementById('create-form-wrap'); },
+    getHighlight: function(){ return document.querySelector('#page-create .container'); },
     getAllowed: function(){
       return [
         '#create-question','#choice-list','#choice-list input',
         '#add-choice-btn','#fmt-choice-btn',
         '#create-cat-input','#cat-dropdown','#create-selected-cats',
         '#create-form-wrap .btn-primary','#create-form-wrap .btn-ghost',
-        '#create-form-wrap .btn-secondary','#create-cat-suggestions'
+        '#create-form-wrap .btn-secondary','#create-cat-suggestions',
+        '#create-form-wrap'
       ];
     }
   },
@@ -2600,6 +2613,34 @@ function replayTour(){
   localStorage.removeItem('pollster_tour_done');
   setTimeout(function(){ TOUR.start(); },100);
 }
+
+
+// ============================================================
+//  HASH ROUTER
+// ============================================================
+async function handleHash(){
+  const hash = window.location.hash.replace('#','').trim();
+  if(!hash || hash === 'home'){
+    showPage('home', true);
+  } else if(hash === 'browse'){
+    showPage('browse', true);
+  } else if(hash === 'create'){
+    showPage('create', true);
+  } else if(hash === 'profile'){
+    showPage('profile', true);
+  } else if(hash === 'settings'){
+    showPage('settings', true);
+  } else if(hash === 'community'){
+    showPage('community', true);
+  } else if(hash.startsWith('poll/')){
+    var pollId = hash.replace('poll/','').toUpperCase();
+    await openPoll(pollId, null, true);
+  } else {
+    showPage('home', true);
+  }
+}
+
+window.addEventListener('popstate', function(){ handleHash(); });
 
 </script>
 
